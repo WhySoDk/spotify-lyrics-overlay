@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
-using System.Windows.Forms;
 
 namespace spotify_lyrics_overlay
 {
@@ -14,17 +13,6 @@ namespace spotify_lyrics_overlay
         {
 
             var config = ConfigManager.Instance.LoadConfig();
-
-            if (ConfigManager.Instance != null && ConfigManager.Instance.Config != null)
-            {
-                // ConfigManager has started and config is loaded
-                Debug.WriteLine("ConfigManager started: " + ConfigManager.Instance.Config.ToString());
-            }
-            else
-            {
-                Debug.WriteLine("ConfigManager not started.");
-            }
-
 
             InitializeComponent();
 
@@ -116,8 +104,8 @@ namespace spotify_lyrics_overlay
 
             isInitializing = false;
             updateConfig();
-            overlay = new LyricsOverlay(() => isStarted);
-            overlay.Show();
+            //overlay = new LyricsOverlay(() => isStarted);
+            //overlay.Show();
         }
 
         //comboBoxFont thx2 https://stackoverflow.com/a/46038365
@@ -333,6 +321,13 @@ namespace spotify_lyrics_overlay
             {
                 runButton.Text = "Stop";
                 runButton.BackColor = Color.DarkRed;
+
+                if (overlay == null)
+                {
+                    overlay = new LyricsOverlay(() => isStarted);
+                    overlay.Show();
+                }
+
             }
             else
             {

@@ -1,25 +1,26 @@
-﻿using System;
-using System.Drawing;
-using System.Runtime.InteropServices;
-using System.Windows.Forms;
+﻿using System.Runtime.InteropServices;
 
 namespace spotify_lyrics_overlay
 {
     public class LyricsOverlay : Form
     {
-        private string currentLyrics = "Lorem ipsum dolor sit amet\nถ้าให้ฉันแข่งกับเธอ เพื่อลืมเรื่องราวของเรา";
+        private string currentLyrics;
         private Func<bool> isStartedProvider;
         private System.Windows.Forms.Timer updateTimer;
+        private LyricsFactory lyricsFactory = new LyricsFactory();
 
         public LyricsOverlay(Func<bool> isStartedProvider)
         {
             this.isStartedProvider = isStartedProvider;
-            InitializeOverlay();
-            ApplyConfig();
-            SetupTimer();
+            currentLyrics = "";
+            initializeOverlay();
+            updateLyrics();
+            applyConfig();
+            setupTimer();
+
         }
 
-        private void InitializeOverlay()
+        private void initializeOverlay()
         {
             this.FormBorderStyle = FormBorderStyle.None;
             this.ShowInTaskbar = false;
@@ -36,25 +37,27 @@ namespace spotify_lyrics_overlay
             int initialStyle = NativeMethods.GetWindowLong(this.Handle, NativeMethods.GWL_EXSTYLE);
             NativeMethods.SetWindowLong(this.Handle, NativeMethods.GWL_EXSTYLE,
                 initialStyle | NativeMethods.WS_EX_LAYERED | NativeMethods.WS_EX_TRANSPARENT);
+
         }
 
-        private void ApplyConfig()
+        private void applyConfig()
         {
             // Redraw with new config
-            this.Invalidate(); 
+            this.Invalidate();
         }
 
-        private void SetupTimer()
+        private void setupTimer()
         {
             updateTimer = new System.Windows.Forms.Timer();
-            updateTimer.Interval = 50;
+            updateTimer.Interval = 200;
             updateTimer.Tick += (s, e) =>
             {
                 if (isStartedProvider())
                 {
                     if (!this.Visible)
                         this.Show();
-                    ApplyConfig();
+                    applyConfig();
+                    updateLyrics();
                 }
                 else
                 {
@@ -65,14 +68,13 @@ namespace spotify_lyrics_overlay
             updateTimer.Start();
         }
 
-        //TODO: write a lyrics api and spotify api
-        public void UpdateLyrics(string text)
+        public async Task updateLyrics()
         {
-            currentLyrics = text;
+            currentLyrics = await lyricsFactory.getLyricsAsync();
             this.Invalidate();
         }
 
-        //TODO: Added second monitor support
+        //TODO: Added second monitor support (fix it)
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
@@ -85,7 +87,7 @@ namespace spotify_lyrics_overlay
 
             using var font = new Font(config.fontName ?? "Arial", config.fontSize, style);
             using var brush = new SolidBrush(ColorTranslator.FromHtml(config.fontColorHex));
-            using var shadowBrush = (config.dropShadow)? new SolidBrush(Color.FromArgb(180, 0, 0, 0)) : new SolidBrush(Color.FromArgb(0, 0, 0, 0));
+            using var shadowBrush = (config.dropShadow) ? new SolidBrush(Color.FromArgb(200, 1, 1, 1)) : new SolidBrush(Color.FromArgb(0, 0, 0, 0));
 
             var g = e.Graphics;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;

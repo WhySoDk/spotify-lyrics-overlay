@@ -195,9 +195,9 @@
             apiKeyText.ForeColor = SystemColors.ControlLight;
             apiKeyText.Location = new Point(8, 262);
             apiKeyText.Name = "apiKeyText";
-            apiKeyText.Size = new Size(207, 21);
+            apiKeyText.Size = new Size(133, 21);
             apiKeyText.TabIndex = 13;
-            apiKeyText.Text = "Spotify developer API key";
+            apiKeyText.Text = "Spotify Client Id";
             apiKeyText.TextAlign = ContentAlignment.MiddleLeft;
             // 
             // apiKeyBox
@@ -220,9 +220,9 @@
             apiRememberCheck.Location = new Point(7, 311);
             apiRememberCheck.Name = "apiRememberCheck";
             apiRememberCheck.RightToLeft = RightToLeft.Yes;
-            apiRememberCheck.Size = new Size(161, 25);
+            apiRememberCheck.Size = new Size(167, 25);
             apiRememberCheck.TabIndex = 15;
-            apiRememberCheck.Text = "Remember API key";
+            apiRememberCheck.Text = "Remember Client Id";
             apiRememberCheck.UseVisualStyleBackColor = true;
             apiRememberCheck.CheckedChanged += apiRememberCheck_CheckedChanged;
             // 

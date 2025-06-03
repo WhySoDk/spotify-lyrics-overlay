@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Drawing;
-
-namespace spotify_lyrics_overlay
+﻿namespace spotify_lyrics_overlay
 {
     public class AppConfig
     {

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Diagnostics;
-using System.Drawing;
-using System.IO;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Windows.Forms;
+﻿using System.Text.Json;
 
 namespace spotify_lyrics_overlay
 {
