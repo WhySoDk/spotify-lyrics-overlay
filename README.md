@@ -1,5 +1,5 @@
 ﻿# spotify-lyrics-overlay
- ###### sir this repo is still under construct 
+ ###### sir the readMe is still under construct 
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡏⢐⡀⠸⣆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⠃⢈⡇⣄⣹⣆⣀⣀⣀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⣤⠤⠤⠶⠶⢶⣾⡟⢉⣹⠋⠁⠀⠹⣦⡀⠀⠀⠈⠉⠉⠙⠓⠦⣄⣀⡤⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀
