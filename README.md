@@ -62,3 +62,7 @@ Now you can sing along with your song while coding. A study found that this impr
 
 # Security Concern
 The Client ID will be saved as a string in a JSON file if `Remember Client Id` is checked. If you're concerned about security, please be aware of this.
+
+## Thanks
+Special thanks to [LRCLIB](https://lrclib.net/) for providing a completely free service for finding and contributing synchronized lyrics, without LRCLIB, this project could not be built.❤️🙏
+
