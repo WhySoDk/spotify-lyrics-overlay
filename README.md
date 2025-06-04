@@ -38,6 +38,7 @@ Now you can sing along with your song while coding. A study found that this impr
 ![image](https://github.com/user-attachments/assets/de58758b-26cf-4dd2-af4b-d51f7bfe2ba8)
 
 # How to use
+The program executable (.exe) is in the release folder. The program should run when you click on it.
 - The Spotify application is only need to create once, after that you can reuse th same Client ID.
 - If you already have Client ID, you can start at step 6.
 - And if you use remember Client ID, you can start at step 7.
