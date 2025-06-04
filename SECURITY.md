@@ -8,7 +8,7 @@
 
 ## Reporting a Vulnerability
 
-If you found any vulnerability, plese report it via a git advisory.
+If you found any vulnerability, please report it via a git advisory.
 
 ## Security concern
 
