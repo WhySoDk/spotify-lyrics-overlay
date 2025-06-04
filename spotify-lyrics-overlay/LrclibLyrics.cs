@@ -18,7 +18,14 @@ namespace spotify_lyrics_overlay
         private string? lastArtistName;
         private LyricsResult? cachedLyrics;
 
-        private LrcLibLyricsProvider() { }
+        private LrcLibLyricsProvider()
+        {
+            httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
+                "SpotifyLyricsOverlay v1.0.0 (https://github.com/WhySoDk/spotify-lyrics-overlay)"
+            );
+        }
+
 
         public async Task<LyricsResult?> GetLyricsAsync(string trackName, string artistName, int durationSeconds)
         {
