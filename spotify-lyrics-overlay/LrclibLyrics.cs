@@ -22,7 +22,7 @@ namespace spotify_lyrics_overlay
         {
             httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
-                "SpotifyLyricsOverlay v1.0.0 (https://github.com/WhySoDk/spotify-lyrics-overlay)"
+                "SpotifyLyricsOverlay v1.1.0 (https://github.com/WhySoDk/spotify-lyrics-overlay)"
             );
         }
 
