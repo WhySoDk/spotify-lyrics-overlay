@@ -74,6 +74,9 @@ namespace spotify_lyrics_overlay
         private bool albumColorLoading;
         public Color? AlbumColor { get; private set; }
 
+        //true while the album color for the playing song is still being picked
+        public bool AlbumColorPending => playbackState?.TrackId is string trackId && albumColorTrackId != trackId;
+
         public LyricsFactory()
         {
         }
@@ -244,7 +247,7 @@ namespace spotify_lyrics_overlay
             if (!ConfigManager.Instance.LoadConfig().albumColor) return;
 
             // wait for the lyrics, the color is cached with them
-            if (state.TrackId != lyricsTrackId || !lyricsLoaded || albumColorLoading || albumColorTrackId == state.TrackId) return;
+            if (state.TrackId != lyricsTrackId || !(lyricsLoaded || lyricsFailed) || albumColorLoading || albumColorTrackId == state.TrackId) return;
 
             _ = LoadAlbumColorAsync(state);
         }

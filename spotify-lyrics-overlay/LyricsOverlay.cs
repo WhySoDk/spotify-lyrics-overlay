@@ -25,6 +25,8 @@ namespace spotify_lyrics_overlay
 
         // text color from the album cover, null uses the configured color
         private Color? albumColor;
+        // shown while the album color is still being picked
+        private static readonly Color AlbumColorPlaceholder = Color.FromArgb(120, 200, 200, 200);
 
         // background box, glides toward the size of the finished layout instead of snapping
         private const float BoxSmoothingSeconds = 0.06f;
@@ -160,7 +162,9 @@ namespace spotify_lyrics_overlay
 
             bool needsRender = transition.Update(lyricsFactory.getLyricsView());
 
-            var color = config.albumColor ? lyricsFactory.AlbumColor : null;
+            var color = !config.albumColor ? null
+                : lyricsFactory.AlbumColorPending ? AlbumColorPlaceholder
+                : lyricsFactory.AlbumColor;
             bool colorChanged = color != albumColor;
             albumColor = color;
 
