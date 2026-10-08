@@ -69,7 +69,7 @@ namespace spotify_lyrics_overlay
             {
                 if (memoryCache.TryGetValue(key, out var cached))
                 {
-                    DebugStatus.Show("Cache hit (memory)", cacheHit: true);
+                    DebugStatus.Show($"Cache hit (memory): {trackName} — {artistName}", cacheHit: true);
                     return Task.FromResult(new LyricsLookup(cached, false));
                 }
 
@@ -96,9 +96,9 @@ namespace spotify_lyrics_overlay
                 if (cached != null && !IsExpired(cached))
                 {
                     if (cached.Manual)
-                        DebugStatus.Show($"Cache hit (set from a link): {Describe(result)}", cacheHit: true);
+                        DebugStatus.Show($"Cache hit (set from a link): {trackName} — {artistName}, {Describe(result)}", cacheHit: true);
                     else if (IsComplete(cached))
-                        DebugStatus.Show("Cache hit", cacheHit: true);
+                        DebugStatus.Show($"Cache hit: {trackName} — {artistName}", cacheHit: true);
                     else
                         DebugStatus.Show($"Cache: {Describe(result)}, expires in {DebugStatus.FormatDuration(cached.CheckedAt!.Value + IncompleteCacheDuration - DateTime.UtcNow)}");
                 }
