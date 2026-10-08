@@ -62,6 +62,9 @@ The program executable (.exe) is in the release folder. The program should run w
 7. Click "Start" — the lyrics should now appear on your screen.
 
 
+# Build
+Run `build.cmd` in the project root (needs the .NET 9 SDK). It builds the app and updates the release folder, your `config.json`, `token.json` and lyrics cache there are kept.
+
 # Security Concern
 The Client ID will be saved as a string in a JSON file if `Remember Client Id` is checked. If you're concerned about security, please be aware of this.
 
