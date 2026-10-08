@@ -91,7 +91,13 @@ namespace spotify_lyrics_overlay
 
             try
             {
-                if (cached != null && !IsExpired(cached))
+                // "(Instrumental)", "- Inst." and the like need no lookup, lyrics set by hand still win
+                if (cached?.Manual != true && IsInstrumentalTitle(trackName))
+                {
+                    result = new LyricsResult { Instrumental = true };
+                    DebugStatus.Show($"Instrumental by title: {trackName}");
+                }
+                else if (cached != null && !IsExpired(cached))
                 {
                     if (cached.Manual)
                         DebugStatus.Show($"Cache hit (set by hand): {trackName} — {artistName}, {Describe(result)}", cacheHit: true);
@@ -274,6 +280,24 @@ namespace spotify_lyrics_overlay
         }
 
         private static readonly Regex BracketsRegex = new(@"\([^)]*\)|\[[^\]]*\]");
+        private static readonly Regex VersionPartRegex = new(@"\(([^)]*)\)|\[([^\]]*)\]|\s[-–—]\s(.*)$");
+        private static readonly Regex InstrumentalWordsRegex = new(@"\b(instrumental|inst|off[\s-]?vocal|karaoke|backing track)\b", RegexOptions.IgnoreCase);
+        // MR (music recorded) is how K-pop releases mark instrumentals, upper case only so "Mr." doesn't count
+        private static readonly Regex MrRegex = new(@"\bMR\b");
+
+        //true when the version part of the title says it has no vocals, e.g. "Song (Instrumental)", "Song - Off Vocal",
+        //the name itself doesn't count so a song called "Karaoke" still gets its lyrics
+        private static bool IsInstrumentalTitle(string trackName)
+        {
+            foreach (Match match in VersionPartRegex.Matches(trackName))
+            {
+                string part = match.Groups[1].Success ? match.Groups[1].Value
+                    : match.Groups[2].Success ? match.Groups[2].Value
+                    : match.Groups[3].Value;
+                if (InstrumentalWordsRegex.IsMatch(part) || MrRegex.IsMatch(part)) return true;
+            }
+            return false;
+        }
         private static readonly Regex SuffixRegex = new(@"\s[-–—]\s.*$");
         private static readonly Regex SpacesRegex = new(@"\s+");
 
