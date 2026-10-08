@@ -9,6 +9,8 @@ namespace spotify_lyrics_overlay
     {
         public string? SyncLyrics { get; set; }
         public string? PlainLyrics { get; set; }
+        // Lyricsfile YAML, has line end times and word timings that the LRC lyrics don't
+        public string? Lyricsfile { get; set; }
         // lyrics color picked from the album cover, cached together with the lyrics
         public string? AlbumColorHex { get; set; }
         public bool Instrumental { get; set; }
@@ -177,6 +179,7 @@ namespace spotify_lyrics_overlay
             {
                 SyncLyrics = doc.TryGetProperty("syncedLyrics", out var sync) && sync.ValueKind == JsonValueKind.String ? sync.GetString() : null,
                 PlainLyrics = doc.TryGetProperty("plainLyrics", out var plain) && plain.ValueKind == JsonValueKind.String ? plain.GetString() : null,
+                Lyricsfile = doc.TryGetProperty("lyricsfile", out var lyricsfile) && lyricsfile.ValueKind == JsonValueKind.String ? lyricsfile.GetString() : null,
                 Instrumental = doc.TryGetProperty("instrumental", out var instrumental) && instrumental.ValueKind == JsonValueKind.True
             };
         }

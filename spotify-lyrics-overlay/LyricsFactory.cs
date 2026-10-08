@@ -9,6 +9,9 @@ namespace spotify_lyrics_overlay
     {
         public double Time { get; set; }
         public string Text { get; set; }
+        // only known from a Lyricsfile, null otherwise
+        public double? EndTime { get; set; }
+        public List<LyricWord>? Words { get; set; }
 
         public LyricLine(double time, string text)
         {
@@ -16,6 +19,8 @@ namespace spotify_lyrics_overlay
             Text = text;
         }
     }
+
+    internal record LyricWord(double Time, double? EndTime, string Text);
 
     internal class PlaybackState
     {
@@ -67,7 +72,7 @@ namespace spotify_lyrics_overlay
         private string? statusKey;
         private readonly Stopwatch statusClock = new();
         private LyricsResult? lyrics;
-        private string? parsedLyricsSource;
+        private LyricsResult? parsedLyricsSource;
         private List<LyricLine> parsedLyrics = new();
 
         // lyrics color from the album cover, only loaded while the option is on
@@ -331,13 +336,16 @@ namespace spotify_lyrics_overlay
                 return new LyricsView { Message = briefly(track + ":none", "No lyrics found") };
             }
 
-            if (!string.IsNullOrEmpty(lyrics.SyncLyrics) && !ReferenceEquals(parsedLyricsSource, lyrics.SyncLyrics))
+            if (!ReferenceEquals(parsedLyricsSource, lyrics))
             {
-                parsedLyrics = ParseLyrics(lyrics.SyncLyrics);
-                parsedLyricsSource = lyrics.SyncLyrics;
+                // the Lyricsfile has more timing detail, the LRC lyrics are the fallback (and all older cached songs have)
+                parsedLyrics = Lyricsfile.ParseLines(lyrics.Lyricsfile) is { Count: > 0 } lines ? lines
+                    : !string.IsNullOrEmpty(lyrics.SyncLyrics) ? ParseLyrics(lyrics.SyncLyrics)
+                    : new List<LyricLine>();
+                parsedLyricsSource = lyrics;
             }
 
-            if (string.IsNullOrEmpty(lyrics.SyncLyrics) || parsedLyrics.Count == 0)
+            if (parsedLyrics.Count == 0)
             {
                 string message = !string.IsNullOrWhiteSpace(lyrics.SyncLyrics) ? "(Can't parse lyrics format)"
                     : !string.IsNullOrWhiteSpace(lyrics.PlainLyrics) ? "(Lyrics not sync)"
