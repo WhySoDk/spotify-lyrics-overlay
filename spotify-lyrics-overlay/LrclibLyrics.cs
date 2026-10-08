@@ -14,6 +14,10 @@ namespace spotify_lyrics_overlay
         // lyrics color picked from the album cover, cached together with the lyrics
         public string? AlbumColorHex { get; set; }
         public bool Instrumental { get; set; }
+        // disk cache only: when lrclib was asked, results without synced lyrics are asked again after a while
+        public DateTime? CheckedAt { get; set; }
+        // disk cache only: lrclib had no lyrics for the song
+        public bool NotFound { get; set; }
     }
 
     //Result is null when lrclib has no lyrics for the song, Failed when the request didn't go through
@@ -26,6 +30,8 @@ namespace spotify_lyrics_overlay
 
         private const string CacheDirectory = "lyrics_cache";
         private static readonly TimeSpan FailedRetryDelay = TimeSpan.FromSeconds(30);
+        // synced lyrics are kept forever, no lyrics or plain lyrics only are looked up again after this
+        private static readonly TimeSpan IncompleteCacheDuration = TimeSpan.FromDays(2);
         private static readonly TimeSpan MaxRetryAfter = TimeSpan.FromSeconds(5);
         private const int MaxAttempts = 3;
         // lrclib's own matching allows ±2 seconds
@@ -77,24 +83,33 @@ namespace spotify_lyrics_overlay
         private async Task<LyricsLookup> LoadLyricsAsync(string key, string trackName, string artistName, string primaryArtist, int durationSeconds)
         {
             bool found = true;
-            LyricsResult? result = ReadDiskCache(key);
+            LyricsResult? cached = ReadDiskCache(key);
+            LyricsResult? result = cached?.NotFound == true ? null : cached;
 
             try
             {
-                // older versions cached the first record lrclib matched even without synced lyrics,
-                // look again once per run in case another record of the song is synced
-                if (result == null || (!HasSyncedLyrics(result) && !result.Instrumental))
+                if (cached == null || IsExpired(cached))
                 {
-                    var cached = result;
                     (found, result) = await FetchLyricsAsync(trackName, artistName, primaryArtist, durationSeconds);
-                    if (cached != null && (result == null || !HasSyncedLyrics(result)))
+
+                    if (!found)
                     {
-                        found = true;
-                        result = cached;
+                        // lrclib can't be reached, the expired entry is still better than nothing
+                        if (cached != null)
+                        {
+                            found = true;
+                            result = cached.NotFound ? null : cached;
+                        }
                     }
-                    else if (result != null)
+                    else
                     {
-                        WriteDiskCache(key, result);
+                        // keep the plain lyrics if they're gone now, and the album color that was already picked
+                        if (result == null && cached?.NotFound == false) result = cached;
+                        if (result != null && result.AlbumColorHex == null) result.AlbumColorHex = cached?.AlbumColorHex;
+
+                        var entry = result ?? new LyricsResult { NotFound = true };
+                        entry.CheckedAt = IsComplete(entry) ? null : DateTime.UtcNow;
+                        WriteDiskCache(key, entry);
                     }
                 }
 
@@ -195,6 +210,18 @@ namespace spotify_lyrics_overlay
         private static bool HasSyncedLyrics(LyricsResult result)
         {
             return !string.IsNullOrWhiteSpace(result.SyncLyrics);
+        }
+
+        //synced or instrumental, nothing better to find on lrclib
+        private static bool IsComplete(LyricsResult result)
+        {
+            return !result.NotFound && (HasSyncedLyrics(result) || result.Instrumental);
+        }
+
+        //entries cached before CheckedAt existed count as expired
+        private static bool IsExpired(LyricsResult cached)
+        {
+            return !IsComplete(cached) && (cached.CheckedAt is not DateTime checkedAt || DateTime.UtcNow - checkedAt > IncompleteCacheDuration);
         }
 
         private static LyricsResult ReadRecord(JsonElement doc)
