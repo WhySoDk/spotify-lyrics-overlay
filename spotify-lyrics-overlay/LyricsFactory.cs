@@ -337,8 +337,8 @@ namespace spotify_lyrics_overlay
 
             if (string.IsNullOrEmpty(lyrics.SyncLyrics) || parsedLyrics.Count == 0)
             {
-                bool hasText = !string.IsNullOrWhiteSpace(lyrics.PlainLyrics) || !string.IsNullOrWhiteSpace(lyrics.SyncLyrics);
-                string message = hasText ? "(Lyrics not sync)"
+                string message = !string.IsNullOrWhiteSpace(lyrics.SyncLyrics) ? "(Can't parse lyrics format)"
+                    : !string.IsNullOrWhiteSpace(lyrics.PlainLyrics) ? "(Lyrics not sync)"
                     : lyrics.Instrumental ? "(Instrumental)"
                     : "No lyrics found";
                 return new LyricsView { Message = briefly(track + ":" + message, message) };
