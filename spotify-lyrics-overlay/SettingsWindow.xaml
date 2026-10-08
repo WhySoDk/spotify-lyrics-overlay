@@ -90,7 +90,7 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- left column: text and position -->
+        <!-- left column: text, position and transition -->
         <StackPanel Grid.Row="0" Grid.Column="0">
             <Border Style="{StaticResource Card}">
                 <StackPanel>
@@ -187,23 +187,15 @@
                                Text="0, 0 is the center of the screen" />
                 </StackPanel>
             </Border>
-
             <Border Style="{StaticResource Card}" Margin="0">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="Lyrics" />
-                    <Button Content="Refetch current song" HorizontalAlignment="Stretch" Margin="0,0,0,12" Click="refetchButton_Click"
-                            ToolTip="Look up the lyrics and album color of the playing song again, skipping the cache" />
-                    <Button Content="Set lyrics from lrclib link..." HorizontalAlignment="Stretch" Margin="0,0,0,12" Click="setLyricsButton_Click"
-                            ToolTip="Pick the lrclib record of the playing song yourself, it replaces the cached lyrics" />
-                    <CheckBox x:Name="debugCheckBox" Content="Show debug info" Click="setting_Changed"
-                              ToolTip="Shows which lyrics lookup step is running above the lyrics" />
-                    <CheckBox x:Name="debugCacheHitsCheckBox" Content="Also show cache hits" Margin="28,8,0,0" Click="setting_Changed"
-                              IsEnabled="{Binding IsChecked, ElementName=debugCheckBox}" />
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Line transition" />
+                    <ComboBox x:Name="transitionComboBox" HorizontalAlignment="Stretch" SelectionChanged="setting_Changed" />
                 </StackPanel>
             </Border>
         </StackPanel>
 
-        <!-- right column: background, transition and Spotify -->
+        <!-- right column: background, lyrics and Spotify -->
         <StackPanel Grid.Row="0" Grid.Column="2">
             <Border Style="{StaticResource Card}">
                 <StackPanel>
@@ -259,8 +251,15 @@
 
             <Border Style="{StaticResource Card}">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="Line transition" />
-                    <ComboBox x:Name="transitionComboBox" HorizontalAlignment="Stretch" SelectionChanged="setting_Changed" />
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Lyrics" />
+                    <Button Content="Refetch current song" HorizontalAlignment="Stretch" Margin="0,0,0,12" Click="refetchButton_Click"
+                            ToolTip="Look up the lyrics and album color of the playing song again, skipping the cache" />
+                    <Button Content="Set lyrics from lrclib link..." HorizontalAlignment="Stretch" Margin="0,0,0,12" Click="setLyricsButton_Click"
+                            ToolTip="Pick the lrclib record of the playing song yourself, it replaces the cached lyrics" />
+                    <CheckBox x:Name="debugCheckBox" Content="Show debug info" Click="setting_Changed"
+                              ToolTip="Shows which lyrics lookup step is running above the lyrics" />
+                    <CheckBox x:Name="debugCacheHitsCheckBox" Content="Also show cache hits" Margin="28,8,0,0" Click="setting_Changed"
+                              IsEnabled="{Binding IsChecked, ElementName=debugCheckBox}" />
                 </StackPanel>
             </Border>
 
