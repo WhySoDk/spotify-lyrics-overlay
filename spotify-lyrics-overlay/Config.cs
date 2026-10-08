@@ -21,7 +21,7 @@ namespace spotify_lyrics_overlay
         public String backgroundColorHex { get; set; } = "#000000";
         public int backgroundOpacity { get; set; } = 70;
         public int backgroundSpread { get; set; } = 12;
-        public String transitionMode { get; set; } = "Legacy";
+        public String transitionMode { get; set; } = Transitions.LyricsTransitions.DefaultId;
 
         public override string ToString()
         {

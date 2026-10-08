@@ -57,7 +57,7 @@ namespace spotify_lyrics_overlay
                 setBackgroundColor(Color.Black);
                 backgroundOpacitySlider.Value = 70;
                 backgroundSpreadBox.Value = 12;
-                transitionComboBox.SelectedIndex = 0;
+                transitionComboBox.SelectedIndex = LyricsTransitions.IndexOf(LyricsTransitions.DefaultId);
             }
             else
             {
@@ -84,7 +84,7 @@ namespace spotify_lyrics_overlay
                 backgroundOpacitySlider.Value = Math.Clamp(config.backgroundOpacity, 0, 100);
                 backgroundSpreadBox.Value = config.backgroundSpread;
 
-                transitionComboBox.SelectedIndex = Math.Max(0, LyricsTransitions.All.ToList().FindIndex(mode => mode.Id == config.transitionMode));
+                transitionComboBox.SelectedIndex = LyricsTransitions.IndexOf(config.transitionMode);
             }
 
             showRunState();

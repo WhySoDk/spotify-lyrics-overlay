@@ -5,7 +5,7 @@ namespace spotify_lyrics_overlay.Transitions
     {
         public record Mode(string Id, string DisplayName, Func<ILyricsTransition> Create);
 
-        // Id is stored in config.json, the first mode is the default
+        // Id is stored in config.json
         public static readonly IReadOnlyList<Mode> All = new[]
         {
             new Mode("Legacy", "Legacy", () => new LegacyTransition()),
@@ -18,10 +18,15 @@ namespace spotify_lyrics_overlay.Transitions
             new Mode("Typewriter", "Typewriter", () => new TypewriterTransition()),
         };
 
-        public static Mode Find(string id)
+        public const string DefaultId = "SlideUp";
+
+        public static int IndexOf(string id)
         {
-            return All.FirstOrDefault(mode => mode.Id == id) ?? All[0];
+            int index = All.ToList().FindIndex(mode => mode.Id == id);
+            return index != -1 ? index : All.ToList().FindIndex(mode => mode.Id == DefaultId);
         }
+
+        public static Mode Find(string id) => All[IndexOf(id)];
 
         //status text and plain lines, every line full size and stacked around the center
         public static List<TextItem> StackLines(Graphics g, Font font, float centerY, IEnumerable<string> lines)
