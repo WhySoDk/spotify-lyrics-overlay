@@ -133,3 +133,4 @@ _NCrunch*
 
 .vs/
 **/config.json
+**/token.json
