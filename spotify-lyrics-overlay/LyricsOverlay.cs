@@ -17,6 +17,17 @@ namespace spotify_lyrics_overlay
         private LyricsFactory lyricsFactory = new LyricsFactory();
         private readonly CancellationTokenSource pollingCancellation = new();
         private string lastConfigSnapshot = "";
+        private Rectangle screenBounds;
+
+        // used to measure text before the bitmap size is known
+        private readonly Graphics measureGraphics = createMeasureGraphics();
+
+        private static Graphics createMeasureGraphics()
+        {
+            var g = Graphics.FromImage(new Bitmap(1, 1));
+            g.TextRenderingHint = TextRenderingHint.AntiAlias;
+            return g;
+        }
 
         public LyricsOverlay(Func<bool> isStartedProvider)
         {
@@ -60,19 +71,20 @@ namespace spotify_lyrics_overlay
 
             // transparency via the alpha channel of the Bitmap
             updateScreenBounds();
+
+            // WinForms resets the window size when showing it, draw again afterwards
+            this.VisibleChanged += (s, e) => { if (this.Visible) RenderLayeredWindow(); };
         }
 
-        //move the overlay when the selected monitor changes
+        //track the selected monitor, the window itself only covers the lyrics
+        //so Windows doesn't treat it as a fullscreen app (that blocks the auto-hide taskbar)
         private void updateScreenBounds()
         {
             var config = ConfigManager.Instance.LoadConfig();
             var screen = Screen.AllScreens.FirstOrDefault(s => s.DeviceName == config.screenName)
                          ?? Screen.PrimaryScreen!;
 
-            if (this.Bounds != screen.Bounds)
-            {
-                this.Bounds = screen.Bounds;
-            }
+            screenBounds = screen.Bounds;
         }
 
         private void applyConfig()
@@ -84,7 +96,7 @@ namespace spotify_lyrics_overlay
 
             updateScreenBounds();
 
-            //call custom render method 
+            //call custom render method
             RenderLayeredWindow();
         }
 
@@ -121,14 +133,88 @@ namespace spotify_lyrics_overlay
             }
         }
 
+        //one line of text, Y is relative to the top of the screen
+        private class TextItem
+        {
+            public string Text = "";
+            public float Scale = 1f;
+            public float Opacity = 1f;
+            public float Y;
+            public float X;
+            public SizeF Size;
+        }
+
+        //legacy layout: every line full size, stacked around the center
+        private List<TextItem> layoutLines(Graphics g, Font font, AppConfig config)
+        {
+            var items = currentLyrics.Split('\n')
+                .Select(line => new TextItem { Text = line, Size = g.MeasureString(line, font) })
+                .ToList();
+
+            float totalHeight = items.Sum(item => item.Size.Height);
+            float y = screenBounds.Height / 2f - totalHeight / 2f - config.yOffset;
+
+            foreach (var item in items)
+            {
+                item.Y = y;
+                y += item.Size.Height;
+            }
+            return items;
+        }
+
         //write to Bitmap memory instead of the screen.
         private void RenderLayeredWindow()
         {
-            // Safety check
-            if (this.Width <= 0 || this.Height <= 0) return;
+            if (screenBounds.Width <= 0 || screenBounds.Height <= 0) return;
 
-            // 1. Create a bitmap of the form size
-            using (Bitmap bitmap = new Bitmap(this.Width, this.Height))
+            var config = ConfigManager.Instance.LoadConfig();
+
+            var style = FontStyle.Regular;
+            if (config.bold) style |= FontStyle.Bold;
+            if (config.italic) style |= FontStyle.Italic;
+
+            using var font = new Font(config.fontName ?? "Arial", config.fontSize, style);
+            var textColor = ColorTranslator.FromHtml(config.fontColorHex);
+
+            // 1. Layout the text, positions are relative to the selected screen
+            var items = layoutLines(measureGraphics, font, config);
+            foreach (var item in items)
+            {
+                item.X = screenBounds.Width / 2f - item.Size.Width / 2f + config.xOffset;
+            }
+
+            bool hasText = items.Any(item => !string.IsNullOrWhiteSpace(item.Text));
+            RectangleF content = RectangleF.Empty;
+            foreach (var item in items.Where(item => !string.IsNullOrWhiteSpace(item.Text)))
+            {
+                var rect = new RectangleF(item.X, item.Y, item.Size.Width + 2, item.Size.Height + 2);
+                content = content.IsEmpty ? rect : RectangleF.Union(content, rect);
+            }
+
+            RectangleF box = RectangleF.Empty;
+            if (config.backgroundEnabled && hasText)
+            {
+                float maxWidth = items.Max(item => item.Size.Width);
+                float spread = config.backgroundSpread;
+                float top = items.Min(item => item.Y);
+                float bottom = items.Max(item => item.Y + item.Size.Height);
+                box = new RectangleF(
+                    screenBounds.Width / 2f - maxWidth / 2f + config.xOffset - spread,
+                    top - spread,
+                    maxWidth + spread * 2,
+                    bottom - top + spread * 2);
+                content = RectangleF.Union(content, box);
+            }
+
+            // 2. Only the area with content becomes the window, clamped to the screen
+            var area = Rectangle.Intersect(Rectangle.Ceiling(content),
+                new Rectangle(0, 0, screenBounds.Width, screenBounds.Height));
+            if (!hasText || area.Width <= 0 || area.Height <= 0)
+            {
+                area = new Rectangle(screenBounds.Width / 2, screenBounds.Height / 2, 1, 1);
+            }
+
+            using (Bitmap bitmap = new Bitmap(area.Width, area.Height))
             {
                 using (Graphics g = Graphics.FromImage(bitmap))
                 {
@@ -140,67 +226,50 @@ namespace spotify_lyrics_overlay
                     // Clear with 100% transparent background
                     g.Clear(Color.Transparent);
 
-                    var config = ConfigManager.Instance.LoadConfig();
-
-                    var style = FontStyle.Regular;
-                    if (config.bold) style |= FontStyle.Bold;
-                    if (config.italic) style |= FontStyle.Italic;
-
-                    using var font = new Font(config.fontName ?? "Arial", config.fontSize, style);
-                    using var brush = new SolidBrush(ColorTranslator.FromHtml(config.fontColorHex));
-
-                    // Using 200 Alpha for shadow, or fully transparent if disabled
-                    using var shadowBrush = (config.dropShadow)
-                        ? new SolidBrush(Color.FromArgb(200, 1, 1, 1))
-                        : new SolidBrush(Color.Transparent);
-
-                    var lines = currentLyrics.Split(new[] { '\n' }, StringSplitOptions.None);
-
-                    var lineSizes = lines.Select(line => g.MeasureString(line, font)).ToArray();
-                    float totalHeight = lineSizes.Sum(size => size.Height);
-                    float y = this.Height / 2f - totalHeight / 2f - config.yOffset;
-
-                    // Draw Background box around the whole text block
-                    if (config.backgroundEnabled && !string.IsNullOrWhiteSpace(currentLyrics))
+                    if (hasText)
                     {
-                        float maxWidth = lineSizes.Max(size => size.Width);
-                        float spread = config.backgroundSpread;
-                        var boxColor = ColorHelper.WithOpacity(ColorHelper.FromHex(config.backgroundColorHex, Color.Black), config.backgroundOpacity);
+                        g.TranslateTransform(-area.X, -area.Y);
 
-                        using var boxBrush = new SolidBrush(boxColor);
-                        g.FillRectangle(boxBrush,
-                            this.Width / 2f - maxWidth / 2f + config.xOffset - spread,
-                            y - spread,
-                            maxWidth + spread * 2,
-                            totalHeight + spread * 2);
-                    }
-
-                    for (int i = 0; i < lines.Length; i++)
-                    {
-                        var line = lines[i];
-                        var textSize = lineSizes[i];
-                        float x = this.Width / 2f - textSize.Width / 2f + config.xOffset;
-
-                        // Draw Shadow
-                        if (config.dropShadow)
+                        // Draw Background box around the whole text block
+                        if (!box.IsEmpty)
                         {
-                            g.DrawString(line, font, shadowBrush, new PointF(x + 2, y + 2));
+                            var boxColor = ColorHelper.WithOpacity(ColorHelper.FromHex(config.backgroundColorHex, Color.Black), config.backgroundOpacity);
+                            using var boxBrush = new SolidBrush(boxColor);
+                            g.FillRectangle(boxBrush, box);
                         }
 
-                        // Draw Text
-                        g.DrawString(line, font, brush, new PointF(x, y));
-
-                        y += textSize.Height;
+                        foreach (var item in items)
+                        {
+                            drawTextItem(g, item, font, textColor, config.dropShadow);
+                        }
                     }
                 }
 
-                // 2. Push the bitmap to the window using Win32 API
-                SetLayeredWindowBitmap(bitmap);
+                // 3. Push the bitmap to the window using Win32 API
+                SetLayeredWindowBitmap(bitmap, new Point(screenBounds.X + area.X, screenBounds.Y + area.Y));
             }
         }
 
+        private void drawTextItem(Graphics g, TextItem item, Font font, Color textColor, bool dropShadow)
+        {
+            if (string.IsNullOrWhiteSpace(item.Text) || item.Opacity <= 0f) return;
+
+            using var scaledFont = item.Scale == 1f ? null : new Font(font.FontFamily, font.Size * item.Scale, font.Style);
+            var itemFont = scaledFont ?? font;
+
+            // Using 200 Alpha for shadow
+            if (dropShadow)
+            {
+                using var shadowBrush = new SolidBrush(Color.FromArgb((int)(200 * item.Opacity), 1, 1, 1));
+                g.DrawString(item.Text, itemFont, shadowBrush, new PointF(item.X + 2, item.Y + 2));
+            }
+
+            using var brush = new SolidBrush(Color.FromArgb((int)(textColor.A * item.Opacity), textColor));
+            g.DrawString(item.Text, itemFont, brush, new PointF(item.X, item.Y));
+        }
+
         //Helper to interface with Windows API
-        private void SetLayeredWindowBitmap(Bitmap bitmap)
+        private void SetLayeredWindowBitmap(Bitmap bitmap, Point topPos)
         {
             IntPtr screenDc = NativeMethods.GetDC(IntPtr.Zero);
             IntPtr memDc = NativeMethods.CreateCompatibleDC(screenDc);
@@ -214,7 +283,6 @@ namespace spotify_lyrics_overlay
 
                 Size size = new Size(bitmap.Width, bitmap.Height);
                 Point pointSource = new Point(0, 0);
-                Point topPos = new Point(this.Left, this.Top);
 
                 NativeMethods.BLENDFUNCTION blend = new NativeMethods.BLENDFUNCTION();
                 blend.BlendOp = NativeMethods.AC_SRC_OVER;
