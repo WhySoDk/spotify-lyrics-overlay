@@ -138,3 +138,6 @@ _NCrunch*
 
 # Affinity design source files
 *.af
+
+# built by build.cmd, published through GitHub Releases
+release/
