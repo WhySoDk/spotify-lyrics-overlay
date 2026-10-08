@@ -134,3 +134,4 @@ _NCrunch*
 .vs/
 **/config.json
 **/token.json
+**/lyrics_cache/

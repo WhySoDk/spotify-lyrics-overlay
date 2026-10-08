@@ -28,6 +28,8 @@ namespace spotify_lyrics_overlay
     internal class LyricsFactory
     {
         private SpotifyClient? spotify;
+        private string? parsedLyricsSource;
+        private List<LyricLine> parsedLyrics = new();
 
         public LyricsFactory()
         {
@@ -101,7 +103,13 @@ namespace spotify_lyrics_overlay
                 return "";
             }
 
-            return GetKaraokeLines(ParseLyrics(lyrics.SyncLyrics), playBackState.CurrentTime);
+            if (!ReferenceEquals(parsedLyricsSource, lyrics.SyncLyrics))
+            {
+                parsedLyrics = ParseLyrics(lyrics.SyncLyrics);
+                parsedLyricsSource = lyrics.SyncLyrics;
+            }
+
+            return GetKaraokeLines(parsedLyrics, playBackState.CurrentTime);
         }
 
         public static List<LyricLine> ParseLyrics(string rawLyrics)
