@@ -81,10 +81,21 @@ namespace spotify_lyrics_overlay
 
             try
             {
-                if (result == null)
+                // older versions cached the first record lrclib matched even without synced lyrics,
+                // look again once per run in case another record of the song is synced
+                if (result == null || (!HasSyncedLyrics(result) && !result.Instrumental))
                 {
+                    var cached = result;
                     (found, result) = await FetchLyricsAsync(trackName, artistName, primaryArtist, durationSeconds);
-                    if (result != null) WriteDiskCache(key, result);
+                    if (cached != null && (result == null || !HasSyncedLyrics(result)))
+                    {
+                        found = true;
+                        result = cached;
+                    }
+                    else if (result != null)
+                    {
+                        WriteDiskCache(key, result);
+                    }
                 }
 
                 lock (memoryCache)
@@ -114,6 +125,7 @@ namespace spotify_lyrics_overlay
                 // lrclib often answers 503 instead of 404 when the artist doesn't match,
                 // so a failed step doesn't stop the next one, it only matters if nothing is found
                 bool failed = false;
+                LyricsResult? best = null;
 
                 foreach (string artist in artists)
                 {
@@ -122,28 +134,35 @@ namespace spotify_lyrics_overlay
                     failed |= !ok;
                     if (json != null)
                     {
-                        var result = ReadRecord(JsonDocument.Parse(json).RootElement);
-                        System.Diagnostics.Debug.WriteLine($"Fetched lyrics for {trackName} by {artist}: {result.SyncLyrics ?? "No synced lyrics"}");
-                        return (true, result);
+                        best = ReadRecord(JsonDocument.Parse(json).RootElement);
+                        System.Diagnostics.Debug.WriteLine($"Fetched lyrics for {trackName} by {artist}: {best.SyncLyrics ?? "No synced lyrics"}");
+                        if (HasSyncedLyrics(best) || best.Instrumental) return (true, best);
+                        // lrclib can pick a record with only plain lyrics when another one of the same song is synced
+                        break;
                     }
                 }
 
                 // the title can differ too, e.g. "(Feat. Kim Do Yeon)" vs "(Feat. Kim Doyeon of Weki Meki)",
                 // search by the title without the featured artists and pick a record with the same duration
-                string searchUrl = $"https://lrclib.net/api/search?track_name={Uri.EscapeDataString(StripFeaturing(trackName))}&artist_name={Uri.EscapeDataString(artists[^1])}";
+                string title = StripFeaturing(trackName);
+                string searchUrl = $"https://lrclib.net/api/search?track_name={Uri.EscapeDataString(title)}&artist_name={Uri.EscapeDataString(artists[^1])}";
                 var (searchOk, searchJson) = await GetJsonAsync(searchUrl);
                 failed |= !searchOk;
-                if (searchJson == null) return (!failed, null);
 
-                var match = JsonDocument.Parse(searchJson).RootElement.EnumerateArray()
+                var match = searchJson == null ? null : JsonDocument.Parse(searchJson).RootElement.EnumerateArray()
                     .Where(r => r.TryGetProperty("duration", out var d) && d.ValueKind == JsonValueKind.Number
-                        && Math.Abs(d.GetDouble() - durationSeconds) <= SearchDurationTolerance)
+                        && Math.Abs(d.GetDouble() - durationSeconds) <= SearchDurationTolerance
+                        && r.TryGetProperty("trackName", out var name) && name.ValueKind == JsonValueKind.String
+                        && StripFeaturing(name.GetString()!).Equals(title, StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(r => Math.Abs(r.GetProperty("duration").GetDouble() - durationSeconds))
                     .Select(ReadRecord)
-                    .OrderByDescending(r => !string.IsNullOrWhiteSpace(r.SyncLyrics))
+                    .OrderByDescending(HasSyncedLyrics)
                     .FirstOrDefault();
 
-                System.Diagnostics.Debug.WriteLine($"Searched lyrics for {trackName} by {artistName}: {match?.SyncLyrics ?? "No synced lyrics"}");
-                return (match != null || !failed, match);
+                if (match != null && (best == null || HasSyncedLyrics(match))) best = match;
+
+                System.Diagnostics.Debug.WriteLine($"Searched lyrics for {trackName} by {artistName}: {best?.SyncLyrics ?? "No synced lyrics"}");
+                return (best != null || !failed, best);
             }
             catch (Exception ex)
             {
@@ -171,6 +190,11 @@ namespace spotify_lyrics_overlay
                 var retryAfter = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(1);
                 await Task.Delay(retryAfter < MaxRetryAfter ? retryAfter : MaxRetryAfter);
             }
+        }
+
+        private static bool HasSyncedLyrics(LyricsResult result)
+        {
+            return !string.IsNullOrWhiteSpace(result.SyncLyrics);
         }
 
         private static LyricsResult ReadRecord(JsonElement doc)
