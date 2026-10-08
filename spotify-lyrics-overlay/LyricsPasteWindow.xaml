@@ -1,0 +1,32 @@
+<Window x:Class="spotify_lyrics_overlay.LyricsPasteWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Paste synced lyrics"
+        SizeToContent="Height" Width="520" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Loaded="Window_Loaded">
+
+    <StackPanel Margin="16">
+        <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Song" Margin="0,0,0,4" />
+        <TextBlock x:Name="songText" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
+
+        <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Synced lyrics (LRC)" Margin="0,16,0,6" />
+        <TextBox x:Name="lyricsBox" Height="320" AcceptsReturn="True" AcceptsTab="False" TextWrapping="NoWrap"
+                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" VerticalContentAlignment="Top"
+                 FontFamily="Consolas" TextChanged="lyricsBox_TextChanged" />
+        <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap"
+                   Text="Each line starts with its time, e.g. [00:20.50] First line. They replace the cached lyrics of this song" />
+        <TextBlock x:Name="errorText" Foreground="#FF99A4" Margin="0,8,0,0" TextWrapping="Wrap" Visibility="Collapsed" />
+
+        <Grid Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" Content="Cancel" HorizontalAlignment="Stretch" IsCancel="True" />
+            <Button Grid.Column="2" Content="Save" HorizontalAlignment="Stretch"
+                    Style="{DynamicResource AccentButtonStyle}" Click="saveButton_Click" />
+        </Grid>
+    </StackPanel>
+</Window>

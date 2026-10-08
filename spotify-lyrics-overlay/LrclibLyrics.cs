@@ -18,7 +18,7 @@ namespace spotify_lyrics_overlay
         public DateTime? CheckedAt { get; set; }
         // disk cache only: lrclib had no lyrics for the song
         public bool NotFound { get; set; }
-        // disk cache only: lrclib record picked by hand from a link, never looked up again
+        // disk cache only: lyrics set by hand (a lrclib link or pasted lyrics), never looked up again
         public bool Manual { get; set; }
     }
 
@@ -96,7 +96,7 @@ namespace spotify_lyrics_overlay
                 if (cached != null && !IsExpired(cached))
                 {
                     if (cached.Manual)
-                        DebugStatus.Show($"Cache hit (set from a link): {trackName} — {artistName}, {Describe(result)}", cacheHit: true);
+                        DebugStatus.Show($"Cache hit (set by hand): {trackName} — {artistName}, {Describe(result)}", cacheHit: true);
                     else if (IsComplete(cached))
                         DebugStatus.Show($"Cache hit: {trackName} — {artistName}", cacheHit: true);
                     else
@@ -320,6 +320,33 @@ namespace spotify_lyrics_overlay
             if (json == null) return $"lrclib has no record #{id}";
 
             var result = ReadRecord(JsonDocument.Parse(json).RootElement);
+            SaveManual(trackName, artistName, durationSeconds, result);
+            DebugStatus.Show($"Lyrics set from lrclib #{id}: {Describe(result)}");
+            return null;
+        }
+
+        //use pasted LRC lyrics (e.g. from lyricsify) as the lyrics of the song,
+        //returns an error message or null when they were saved
+        public string? SetSyncedLyrics(string trackName, string artistName, int durationSeconds, string lrc)
+        {
+            lrc = lrc.Replace("\r\n", "\n").Trim();
+            // tags like [ar: Artist] have no time and are skipped
+            var lines = LyricsFactory.ParseLyrics(lrc);
+            if (lines.Count == 0)
+                return "No timed lines found, each line should start with a time like [00:20.50]";
+
+            var result = new LyricsResult
+            {
+                SyncLyrics = lrc,
+                PlainLyrics = string.Join("\n", lines.Select(l => l.Text)).Trim()
+            };
+            SaveManual(trackName, artistName, durationSeconds, result);
+            DebugStatus.Show($"Pasted lyrics saved: {lines.Count(l => l.Text.Length > 0)} lines");
+            return null;
+        }
+
+        private void SaveManual(string trackName, string artistName, int durationSeconds, LyricsResult result)
+        {
             result.Manual = true;
 
             string key = GetKey(trackName, artistName, durationSeconds);
@@ -331,9 +358,6 @@ namespace spotify_lyrics_overlay
                 memoryCache[key] = result;
                 failedRequests.Remove(key);
             }
-
-            DebugStatus.Show($"Lyrics set from lrclib #{id}: {Describe(result)}");
-            return null;
         }
 
         //forget everything cached for the song, the next lookup asks lrclib again

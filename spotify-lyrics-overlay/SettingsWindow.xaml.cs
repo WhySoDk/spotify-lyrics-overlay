@@ -307,6 +307,28 @@ namespace spotify_lyrics_overlay
             }
         }
 
+        private void pasteLyricsButton_Click(object sender, RoutedEventArgs e)
+        {
+            var lyrics = overlay?.Lyrics;
+            // the song is kept, the lyrics go to it even if the next one starts while pasting
+            var song = isStarted ? lyrics?.CurrentSong : null;
+            if (lyrics == null || song == null)
+            {
+                showNothingPlaying();
+                return;
+            }
+
+            var window = new LyricsPasteWindow($"{song.TrackName} — {song.TrackArtists}",
+                lrc => LrcLibLyricsProvider.Instance.SetSyncedLyrics(song.TrackName ?? "", song.TrackArtists ?? "", song.TrackLength, lrc))
+            {
+                Owner = this
+            };
+            if (window.ShowDialog() == true)
+            {
+                lyrics.ReloadSong(song.TrackId);
+            }
+        }
+
         private void showNothingPlaying()
         {
             System.Windows.MessageBox.Show(this, "Start the overlay and play a song on Spotify first.", Title);
