@@ -23,6 +23,14 @@ namespace spotify_lyrics_overlay
         private LyricsTransitions.Mode? transitionMode;
         private ILyricsTransition transition = new LegacyTransition();
 
+        // background box, glides toward the size of the finished layout instead of snapping
+        private const float BoxSmoothingSeconds = 0.06f;
+        private const float MaxBoxFrameSeconds = 0.025f;
+        private RectangleF? boxRect;
+        private bool boxAnimating;
+        private bool snapBox = true;
+        private readonly System.Diagnostics.Stopwatch boxClock = new();
+
         // used to measure text before the bitmap size is known
         private readonly Graphics measureGraphics = createMeasureGraphics();
 
@@ -98,7 +106,8 @@ namespace spotify_lyrics_overlay
 
             updateScreenBounds();
 
-            //call custom render method
+            //call custom render method, settings changes resize the box right away
+            snapBox = true;
             RenderLayeredWindow();
         }
 
@@ -135,10 +144,11 @@ namespace spotify_lyrics_overlay
             {
                 transitionMode = mode;
                 transition = mode.Create();
+                snapBox = true;
             }
 
             bool needsRender = transition.Update(lyricsFactory.getLyricsView());
-            if (needsRender || modeChanged)
+            if (needsRender || modeChanged || boxAnimating)
             {
                 RenderLayeredWindow();
             }
@@ -159,7 +169,8 @@ namespace spotify_lyrics_overlay
             var textColor = ColorTranslator.FromHtml(config.fontColorHex);
 
             // 1. Layout the text, positions are relative to the selected screen
-            var items = transition.Layout(measureGraphics, font, screenBounds.Height / 2f - config.yOffset);
+            float centerY = screenBounds.Height / 2f - config.yOffset;
+            var items = transition.Layout(measureGraphics, font, centerY);
             foreach (var item in items)
             {
                 item.X = screenBounds.Width / 2f - item.Size.Width / 2f + config.xOffset;
@@ -176,18 +187,18 @@ namespace spotify_lyrics_overlay
             RectangleF box = RectangleF.Empty;
             if (config.backgroundEnabled && hasText)
             {
-                var visible = items.Where(item => !string.IsNullOrWhiteSpace(item.Text)).ToList();
-                float maxWidth = visible.Max(item => item.Size.Width);
-                float spread = config.backgroundSpread;
-                float top = visible.Min(item => item.Y);
-                float bottom = visible.Max(item => item.Y + item.Size.Height);
-                box = new RectangleF(
-                    screenBounds.Width / 2f - maxWidth / 2f + config.xOffset - spread,
-                    top - spread,
-                    maxWidth + spread * 2,
-                    bottom - top + spread * 2);
+                // size for the layout after the running animation, e.g. without a line that is fading out
+                var target = getBoxRect(transition.LayoutTarget(measureGraphics, font, centerY), config)
+                             ?? getBoxRect(items, config)!.Value;
+                box = updateBoxRect(target);
                 content = RectangleF.Union(content, box);
             }
+            else
+            {
+                boxRect = null;
+                boxAnimating = false;
+            }
+            snapBox = false;
 
             // 2. Only the area with content becomes the window, clamped to the screen
             var area = Rectangle.Intersect(Rectangle.Ceiling(content),
@@ -231,6 +242,54 @@ namespace spotify_lyrics_overlay
                 // 3. Push the bitmap to the window using Win32 API
                 SetLayeredWindowBitmap(bitmap, new Point(screenBounds.X + area.X, screenBounds.Y + area.Y));
             }
+        }
+
+        //box around the lines that have text, null when there are none
+        private RectangleF? getBoxRect(List<TextItem> items, AppConfig config)
+        {
+            var visible = items.Where(item => !string.IsNullOrWhiteSpace(item.Text)).ToList();
+            if (visible.Count == 0) return null;
+
+            float maxWidth = visible.Max(item => item.Size.Width);
+            float spread = config.backgroundSpread;
+            float top = visible.Min(item => item.Y);
+            float bottom = visible.Max(item => item.Y + item.Size.Height);
+            return new RectangleF(
+                screenBounds.Width / 2f - maxWidth / 2f + config.xOffset - spread,
+                top - spread,
+                maxWidth + spread * 2,
+                bottom - top + spread * 2);
+        }
+
+        //move the drawn box part of the way to the target, frame rate independent
+        private RectangleF updateBoxRect(RectangleF target)
+        {
+            // a long pause between renders must not turn into one big jump
+            float dt = Math.Min((float)boxClock.Elapsed.TotalSeconds, MaxBoxFrameSeconds);
+            boxClock.Restart();
+
+            if (boxRect == null || snapBox)
+            {
+                // box just appeared or the settings changed
+                boxRect = target;
+            }
+            else
+            {
+                float k = 1f - (float)Math.Exp(-dt / BoxSmoothingSeconds);
+                var current = boxRect.Value;
+                var next = RectangleF.FromLTRB(
+                    current.Left + (target.Left - current.Left) * k,
+                    current.Top + (target.Top - current.Top) * k,
+                    current.Right + (target.Right - current.Right) * k,
+                    current.Bottom + (target.Bottom - current.Bottom) * k);
+
+                bool settled = Math.Abs(next.Left - target.Left) < 0.5f && Math.Abs(next.Top - target.Top) < 0.5f
+                    && Math.Abs(next.Right - target.Right) < 0.5f && Math.Abs(next.Bottom - target.Bottom) < 0.5f;
+                boxRect = settled ? target : next;
+            }
+
+            boxAnimating = boxRect.Value != target;
+            return boxRect.Value;
         }
 
         private void drawTextItem(Graphics g, TextItem item, Font font, Color textColor, bool dropShadow)

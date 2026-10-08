@@ -45,13 +45,23 @@ namespace spotify_lyrics_overlay.Transitions
 
         public List<TextItem> Layout(Graphics g, Font font, float centerY)
         {
+            return layout(g, font, centerY, getProgress());
+        }
+
+        public List<TextItem> LayoutTarget(Graphics g, Font font, float centerY)
+        {
+            return layout(g, font, centerY, 1f);
+        }
+
+        //p: animation progress, 0 = previous line still on the first row, 1 = done
+        private List<TextItem> layout(Graphics g, Font font, float centerY, float p)
+        {
             if (lines == null)
             {
                 return LyricsTransitions.StackLines(g, font, centerY, (message ?? "").Split('\n'));
             }
 
             var items = new List<TextItem>();
-            float p = getProgress();
 
             float row1Height = g.MeasureString("Ag", font).Height;
             float row2Height = row1Height * NextLineScale;

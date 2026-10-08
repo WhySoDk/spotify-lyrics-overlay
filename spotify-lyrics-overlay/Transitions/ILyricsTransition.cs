@@ -21,5 +21,9 @@ namespace spotify_lyrics_overlay.Transitions
 
         //lines to draw for the current frame, vertically centered on centerY
         List<TextItem> Layout(Graphics g, Font font, float centerY);
+
+        //lines as they will be once the running animation is done,
+        //the background box glides toward this layout instead of following every frame
+        List<TextItem> LayoutTarget(Graphics g, Font font, float centerY) => Layout(g, font, centerY);
     }
 }
