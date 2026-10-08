@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
@@ -275,6 +276,12 @@ namespace spotify_lyrics_overlay
         {
             runButton.Content = isStarted ? "Stop" : "Start";
             runButton.Background = isStarted ? StopBrush : StartBrush;
+        }
+
+        private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+            e.Handled = true;
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

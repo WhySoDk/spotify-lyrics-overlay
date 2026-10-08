@@ -258,6 +258,13 @@
                     <CheckBox x:Name="rememberClientIdCheckBox" Content="Remember Client ID" Margin="0,8,0,0" Click="setting_Changed" />
                 </StackPanel>
             </Border>
+
+            <TextBlock Margin="4,12,12,4" FontSize="12" TextWrapping="Wrap" TextAlignment="Right">
+                <Hyperlink NavigateUri="https://developer.spotify.com/dashboard/create" Foreground="#4CC2FF"
+                           RequestNavigate="Hyperlink_RequestNavigate">
+                    Spotify Developer Dashboard
+                </Hyperlink>
+            </TextBlock>
         </StackPanel>
 
         <Button x:Name="runButton" Grid.Row="1" Grid.ColumnSpan="3" Margin="0,16,0,0"
