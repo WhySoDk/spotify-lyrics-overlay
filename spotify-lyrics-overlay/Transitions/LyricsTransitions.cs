@@ -10,6 +10,7 @@ namespace spotify_lyrics_overlay.Transitions
         {
             new Mode("Legacy", "Legacy", () => new LegacyTransition()),
             new Mode("SlideUp", "Slide up", () => new SlideUpTransition()),
+            new Mode("Crossfade", "Crossfade", () => new CrossfadeTransition()),
         };
 
         public static Mode Find(string id)
