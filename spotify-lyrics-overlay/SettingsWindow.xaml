@@ -273,6 +273,11 @@
             </Border>
 
             <TextBlock Margin="4,12,12,4" FontSize="12" TextWrapping="Wrap" TextAlignment="Right">
+                <Hyperlink NavigateUri="https://lrclib.net" Foreground="#4CC2FF"
+                           RequestNavigate="Hyperlink_RequestNavigate">
+                    LRCLIB
+                </Hyperlink>
+                <Run Text="  ·  " Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                 <Hyperlink NavigateUri="https://developer.spotify.com/dashboard/create" Foreground="#4CC2FF"
                            RequestNavigate="Hyperlink_RequestNavigate">
                     Spotify Developer Dashboard
