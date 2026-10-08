@@ -1,0 +1,100 @@
+<Window x:Class="spotify_lyrics_overlay.ColorPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Pick a color"
+        SizeToContent="WidthAndHeight" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Loaded="Window_Loaded">
+
+    <Window.Resources>
+        <Style x:Key="Swatch" TargetType="Border">
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+    </Window.Resources>
+
+    <StackPanel Margin="16" Width="280">
+        <!-- saturation from left to right, brightness from bottom to top -->
+        <Grid x:Name="saturationValueBox" Height="170" Cursor="Cross" ClipToBounds="True" Background="Transparent"
+              MouseLeftButtonDown="saturationValueBox_MouseDown" MouseMove="saturationValueBox_MouseMove"
+              MouseLeftButtonUp="pickArea_MouseUp">
+            <Rectangle>
+                <Rectangle.Fill>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="White" Offset="0" />
+                        <GradientStop x:Name="hueStop" Color="Red" Offset="1" />
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+            <Rectangle>
+                <Rectangle.Fill>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#00000000" Offset="0" />
+                        <GradientStop Color="Black" Offset="1" />
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+            <Canvas IsHitTestVisible="False">
+                <Ellipse x:Name="saturationValueMarker" Width="14" Height="14" Stroke="White" StrokeThickness="2">
+                    <Ellipse.Effect>
+                        <DropShadowEffect ShadowDepth="0" BlurRadius="3" Opacity="0.8" />
+                    </Ellipse.Effect>
+                </Ellipse>
+            </Canvas>
+        </Grid>
+
+        <!-- hue from left (0) to right (360) -->
+        <Grid x:Name="hueSlider" Height="18" Margin="0,10,0,0" Cursor="Hand" Background="Transparent"
+              MouseLeftButtonDown="hueSlider_MouseDown" MouseMove="hueSlider_MouseMove" MouseLeftButtonUp="pickArea_MouseUp">
+            <Rectangle RadiusX="3" RadiusY="3">
+                <Rectangle.Fill>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="#FF0000" Offset="0" />
+                        <GradientStop Color="#FFFF00" Offset="0.1667" />
+                        <GradientStop Color="#00FF00" Offset="0.3333" />
+                        <GradientStop Color="#00FFFF" Offset="0.5" />
+                        <GradientStop Color="#0000FF" Offset="0.6667" />
+                        <GradientStop Color="#FF00FF" Offset="0.8333" />
+                        <GradientStop Color="#FF0000" Offset="1" />
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+            <Canvas IsHitTestVisible="False">
+                <Border x:Name="hueMarker" Width="8" Height="18" CornerRadius="2" BorderBrush="White" BorderThickness="2">
+                    <Border.Effect>
+                        <DropShadowEffect ShadowDepth="0" BlurRadius="3" Opacity="0.8" />
+                    </Border.Effect>
+                </Border>
+            </Canvas>
+        </Grid>
+
+        <UniformGrid x:Name="presetPanel" Rows="1" Margin="0,12,0,0" />
+
+        <Grid Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="40" />
+                <ColumnDefinition Width="40" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border x:Name="oldColorSwatch" Grid.Column="0" Style="{StaticResource Swatch}" CornerRadius="4,0,0,4"
+                    ToolTip="Previous color, click to go back to it" MouseLeftButtonUp="oldColorSwatch_Click" />
+            <Border x:Name="newColorSwatch" Grid.Column="1" Style="{StaticResource Swatch}" CornerRadius="0,4,4,0"
+                    BorderThickness="0,1,1,1" Cursor="Arrow" ToolTip="New color" />
+            <TextBox x:Name="hexBox" Grid.Column="2" Margin="8,0,0,0" VerticalContentAlignment="Center"
+                     TextChanged="hexBox_TextChanged" />
+        </Grid>
+
+        <Grid Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" Content="Cancel" HorizontalAlignment="Stretch" IsCancel="True" />
+            <Button Grid.Column="2" Content="OK" HorizontalAlignment="Stretch" IsDefault="True"
+                    Style="{DynamicResource AccentButtonStyle}" Click="okButton_Click" />
+        </Grid>
+    </StackPanel>
+</Window>

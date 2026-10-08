@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Interop;
 using System.Windows.Media;
 using spotify_lyrics_overlay.Transitions;
 using Brush = System.Windows.Media.Brush;
@@ -196,21 +195,11 @@ namespace spotify_lyrics_overlay
         //apply is called while picking so the overlay previews the color, cancel puts the old one back
         private void pickColor(Color current, Action<Color> apply)
         {
-            using var picker = new ColorPickerForm(current);
+            var picker = new ColorPickerWindow(current) { Owner = this };
             picker.ColorChanged += apply;
-
-            var owner = new NativeWindow();
-            owner.AssignHandle(new WindowInteropHelper(this).Handle);
-            try
+            if (picker.ShowDialog() != true)
             {
-                if (picker.ShowDialog(owner) != System.Windows.Forms.DialogResult.OK)
-                {
-                    apply(current);
-                }
-            }
-            finally
-            {
-                owner.ReleaseHandle();
+                apply(current);
             }
         }
 
