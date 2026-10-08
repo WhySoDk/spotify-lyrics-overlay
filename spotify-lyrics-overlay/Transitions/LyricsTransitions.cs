@@ -12,6 +12,7 @@ namespace spotify_lyrics_overlay.Transitions
             new Mode("SlideUp", "Slide up", () => new SlideUpTransition()),
             new Mode("Crossfade", "Crossfade", () => new CrossfadeTransition()),
             new Mode("Scroll", "Scroll", () => new ScrollTransition()),
+            new Mode("Pop", "Pop", () => new PopTransition()),
         };
 
         public static Mode Find(string id)
