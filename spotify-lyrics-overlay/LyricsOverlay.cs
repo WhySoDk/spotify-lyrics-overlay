@@ -6,18 +6,22 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using spotify_lyrics_overlay.Transitions;
 
 namespace spotify_lyrics_overlay
 {
     public class LyricsOverlay : Form
     {
-        private string currentLyrics;
         private Func<bool> isStartedProvider;
         private System.Windows.Forms.Timer updateTimer;
         private LyricsFactory lyricsFactory = new LyricsFactory();
         private readonly CancellationTokenSource pollingCancellation = new();
         private string lastConfigSnapshot = "";
         private Rectangle screenBounds;
+
+        // line transition mode, picked in the main window
+        private LyricsTransitions.Mode? transitionMode;
+        private ILyricsTransition transition = new LegacyTransition();
 
         // used to measure text before the bitmap size is known
         private readonly Graphics measureGraphics = createMeasureGraphics();
@@ -32,8 +36,6 @@ namespace spotify_lyrics_overlay
         public LyricsOverlay(Func<bool> isStartedProvider)
         {
             this.isStartedProvider = isStartedProvider;
-            currentLyrics = "";
-
             initializeOverlay();
 
             RenderLayeredWindow();
@@ -103,7 +105,8 @@ namespace spotify_lyrics_overlay
         private void setupTimer()
         {
             updateTimer = new System.Windows.Forms.Timer();
-            updateTimer.Interval = 100;
+            // fast enough for smooth transitions, idle ticks only compare state
+            updateTimer.Interval = 16;
             updateTimer.Tick += (s, e) =>
             {
                 if (isStartedProvider())
@@ -123,43 +126,22 @@ namespace spotify_lyrics_overlay
 
         public void updateLyrics()
         {
-            string newLyrics = lyricsFactory.getLyrics();
+            var config = ConfigManager.Instance.LoadConfig();
 
-            //re-render if text actually changed
-            if (currentLyrics != newLyrics)
+            // start from a fresh state when the transition mode changes
+            var mode = LyricsTransitions.Find(config.transitionMode);
+            bool modeChanged = mode != transitionMode;
+            if (modeChanged)
             {
-                currentLyrics = newLyrics;
+                transitionMode = mode;
+                transition = mode.Create();
+            }
+
+            bool needsRender = transition.Update(lyricsFactory.getLyricsView());
+            if (needsRender || modeChanged)
+            {
                 RenderLayeredWindow();
             }
-        }
-
-        //one line of text, Y is relative to the top of the screen
-        private class TextItem
-        {
-            public string Text = "";
-            public float Scale = 1f;
-            public float Opacity = 1f;
-            public float Y;
-            public float X;
-            public SizeF Size;
-        }
-
-        //legacy layout: every line full size, stacked around the center
-        private List<TextItem> layoutLines(Graphics g, Font font, AppConfig config)
-        {
-            var items = currentLyrics.Split('\n')
-                .Select(line => new TextItem { Text = line, Size = g.MeasureString(line, font) })
-                .ToList();
-
-            float totalHeight = items.Sum(item => item.Size.Height);
-            float y = screenBounds.Height / 2f - totalHeight / 2f - config.yOffset;
-
-            foreach (var item in items)
-            {
-                item.Y = y;
-                y += item.Size.Height;
-            }
-            return items;
         }
 
         //write to Bitmap memory instead of the screen.
@@ -177,7 +159,7 @@ namespace spotify_lyrics_overlay
             var textColor = ColorTranslator.FromHtml(config.fontColorHex);
 
             // 1. Layout the text, positions are relative to the selected screen
-            var items = layoutLines(measureGraphics, font, config);
+            var items = transition.Layout(measureGraphics, font, screenBounds.Height / 2f - config.yOffset);
             foreach (var item in items)
             {
                 item.X = screenBounds.Width / 2f - item.Size.Width / 2f + config.xOffset;
@@ -194,10 +176,11 @@ namespace spotify_lyrics_overlay
             RectangleF box = RectangleF.Empty;
             if (config.backgroundEnabled && hasText)
             {
-                float maxWidth = items.Max(item => item.Size.Width);
+                var visible = items.Where(item => !string.IsNullOrWhiteSpace(item.Text)).ToList();
+                float maxWidth = visible.Max(item => item.Size.Width);
                 float spread = config.backgroundSpread;
-                float top = items.Min(item => item.Y);
-                float bottom = items.Max(item => item.Y + item.Size.Height);
+                float top = visible.Min(item => item.Y);
+                float bottom = visible.Max(item => item.Y + item.Size.Height);
                 box = new RectangleF(
                     screenBounds.Width / 2f - maxWidth / 2f + config.xOffset - spread,
                     top - spread,

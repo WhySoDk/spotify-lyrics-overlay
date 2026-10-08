@@ -60,6 +60,8 @@
             backgroundOpacityText = new Label();
             backgroundOpacity = new TrackBar();
             backgroundOpacityValue = new Label();
+            transitionText = new Label();
+            transitionComboBox = new ComboBox();
             ((System.ComponentModel.ISupportInitialize)xOffset).BeginInit();
             ((System.ComponentModel.ISupportInitialize)yOffset).BeginInit();
             ((System.ComponentModel.ISupportInitialize)colorPictureBox).BeginInit();
@@ -205,7 +207,7 @@
             apiKeyText.AutoSize = true;
             apiKeyText.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
             apiKeyText.ForeColor = SystemColors.ControlLight;
-            apiKeyText.Location = new Point(8, 387);
+            apiKeyText.Location = new Point(8, 422);
             apiKeyText.Name = "apiKeyText";
             apiKeyText.Size = new Size(133, 21);
             apiKeyText.TabIndex = 13;
@@ -216,7 +218,7 @@
             // 
             apiKeyBox.Font = new Font("Segoe UI", 12F);
             apiKeyBox.ForeColor = SystemColors.ControlText;
-            apiKeyBox.Location = new Point(12, 409);
+            apiKeyBox.Location = new Point(12, 444);
             apiKeyBox.Name = "apiKeyBox";
             apiKeyBox.PasswordChar = '•';
             apiKeyBox.Size = new Size(295, 29);
@@ -229,7 +231,7 @@
             apiRememberCheck.AutoSize = true;
             apiRememberCheck.Font = new Font("Segoe UI", 12F);
             apiRememberCheck.ForeColor = SystemColors.ControlLight;
-            apiRememberCheck.Location = new Point(7, 436);
+            apiRememberCheck.Location = new Point(7, 471);
             apiRememberCheck.Name = "apiRememberCheck";
             apiRememberCheck.RightToLeft = RightToLeft.Yes;
             apiRememberCheck.Size = new Size(167, 25);
@@ -270,7 +272,7 @@
             runButton.FlatStyle = FlatStyle.Popup;
             runButton.Font = new Font("Segoe UI", 20F, FontStyle.Bold, GraphicsUnit.Point, 0);
             runButton.ForeColor = SystemColors.ControlLight;
-            runButton.Location = new Point(12, 472);
+            runButton.Location = new Point(12, 507);
             runButton.Name = "runButton";
             runButton.Size = new Size(295, 69);
             runButton.TabIndex = 18;
@@ -435,13 +437,38 @@
             backgroundOpacityValue.TabIndex = 32;
             backgroundOpacityValue.Text = "70%";
             backgroundOpacityValue.TextAlign = ContentAlignment.MiddleRight;
+            //
+            // transitionText
+            //
+            transitionText.AutoSize = true;
+            transitionText.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            transitionText.ForeColor = SystemColors.ControlLight;
+            transitionText.Location = new Point(9, 360);
+            transitionText.Name = "transitionText";
+            transitionText.Size = new Size(117, 21);
+            transitionText.TabIndex = 33;
+            transitionText.Text = "Line transition";
+            transitionText.TextAlign = ContentAlignment.MiddleLeft;
+            //
+            // transitionComboBox
+            //
+            transitionComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            transitionComboBox.Font = new Font("Segoe UI", 12F);
+            transitionComboBox.FormattingEnabled = true;
+            transitionComboBox.Location = new Point(12, 382);
+            transitionComboBox.Name = "transitionComboBox";
+            transitionComboBox.Size = new Size(295, 29);
+            transitionComboBox.TabIndex = 34;
+            transitionComboBox.SelectedIndexChanged += transitionComboBox_SelectedIndexChanged;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(27, 43, 52);
-            ClientSize = new Size(319, 555);
+            ClientSize = new Size(319, 590);
+            Controls.Add(transitionComboBox);
+            Controls.Add(transitionText);
             Controls.Add(backgroundOpacityValue);
             Controls.Add(backgroundOpacity);
             Controls.Add(backgroundOpacityText);
@@ -474,8 +501,8 @@
             Controls.Add(fontText);
             Controls.Add(apiRememberCheck);
             MaximizeBox = false;
-            MaximumSize = new Size(335, 594);
-            MinimumSize = new Size(335, 594);
+            MaximumSize = new Size(335, 629);
+            MinimumSize = new Size(335, 629);
             Name = "Form1";
             Text = "Spotify-Lyrics-Overlay";
             FormClosing += Form1_FormClosing;
@@ -524,5 +551,7 @@
         private Label backgroundOpacityText;
         private TrackBar backgroundOpacity;
         private Label backgroundOpacityValue;
+        private Label transitionText;
+        private ComboBox transitionComboBox;
     }
 }

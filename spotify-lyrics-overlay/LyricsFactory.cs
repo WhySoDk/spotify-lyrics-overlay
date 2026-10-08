@@ -27,6 +27,16 @@ namespace spotify_lyrics_overlay
         public bool IsPlaying { get; set; }
     }
 
+    //what the overlay should show right now
+    internal class LyricsView
+    {
+        // status text shown as-is (can be empty), null when synced lyrics are available
+        public string? Message { get; set; }
+        public List<LyricLine>? Lines { get; set; }
+        public int CurrentIndex { get; set; } = -1;
+        public double CurrentTime { get; set; }
+    }
+
     internal class LyricsFactory
     {
         private static readonly TimeSpan PlayingPollInterval = TimeSpan.FromSeconds(1.5);
@@ -210,47 +220,47 @@ namespace spotify_lyrics_overlay
             return Math.Min(time, state.TrackLength);
         }
 
-        public string getLyrics()
+        public LyricsView getLyricsView()
         {
             if (!hasPolled)
             {
-                return "";
+                return new LyricsView { Message = "" };
             }
 
             var playBackState = playbackState;
 
             if (playBackState == null)
             {
-                return "Play smt on Spotify";
+                return new LyricsView { Message = "Play smt on Spotify" };
             }
 
             if (playBackState.IsPlaying == false)
             {
-                return "";
+                return new LyricsView { Message = "" };
             }
 
             double currentTime = GetEstimatedTime(playBackState);
 
             if (!lyricsLoaded)
             {
-                return "";
+                return new LyricsView { Message = "" };
             }
 
             if (lyrics == null)
             {
                 if (currentTime < 5)
                 {
-                    return "No lyrics found";
+                    return new LyricsView { Message = "No lyrics found" };
                 }
                 else
                 {
-                    return "";
+                    return new LyricsView { Message = "" };
                 }
 
             }
             if (string.IsNullOrEmpty(lyrics.SyncLyrics))
             {
-                return "";
+                return new LyricsView { Message = "" };
             }
 
             if (!ReferenceEquals(parsedLyricsSource, lyrics.SyncLyrics))
@@ -259,7 +269,19 @@ namespace spotify_lyrics_overlay
                 parsedLyricsSource = lyrics.SyncLyrics;
             }
 
-            return GetKaraokeLines(parsedLyrics, currentTime);
+            return new LyricsView
+            {
+                Lines = parsedLyrics,
+                CurrentIndex = FindCurrentLineIndex(parsedLyrics, currentTime),
+                CurrentTime = currentTime
+            };
+        }
+
+        //legacy two line karaoke text
+        public string getLyrics()
+        {
+            var view = getLyricsView();
+            return view.Message ?? GetKaraokeLines(view.Lines!, view.CurrentTime);
         }
 
         private static readonly Regex TimestampRegex = new(@"^\[(\d+):(\d+(?:[.:]\d+)?)\]");
@@ -300,12 +322,7 @@ namespace spotify_lyrics_overlay
             if (lyrics == null || lyrics.Count == 0)
                 return "";
 
-            // last line that has already started
-            int currentLineIndex = -1;
-            for (int i = 0; i < lyrics.Count && lyrics[i].Time <= currentTime; i++)
-            {
-                currentLineIndex = i;
-            }
+            int currentLineIndex = FindCurrentLineIndex(lyrics, currentTime);
 
             if (currentLineIndex == -1)
             {
@@ -330,6 +347,17 @@ namespace spotify_lyrics_overlay
             return currentLineIndex % 2 == 0
                 ? $"{highlighted}\n{other}"
                 : $"{other}\n{highlighted}";
+        }
+
+        //last line that has already started, -1 before the first line
+        public static int FindCurrentLineIndex(List<LyricLine> lyrics, double currentTime)
+        {
+            int currentLineIndex = -1;
+            for (int i = 0; i < lyrics.Count && lyrics[i].Time <= currentTime; i++)
+            {
+                currentLineIndex = i;
+            }
+            return currentLineIndex;
         }
 
         //true when the current line is empty and no lyrics come after it

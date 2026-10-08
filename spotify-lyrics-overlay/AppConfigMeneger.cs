@@ -40,7 +40,8 @@ namespace spotify_lyrics_overlay
                     backgroundEnabled = false,
                     backgroundColorHex = "#000000",
                     backgroundOpacity = 70,
-                    backgroundSpread = 12
+                    backgroundSpread = 12,
+                    transitionMode = "Legacy"
                 };
 
                 //System.Diagnostics.Debug.WriteLine("Check read json" + Config.ToString());

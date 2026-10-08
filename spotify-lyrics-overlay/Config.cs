@@ -18,13 +18,14 @@
         public String backgroundColorHex { get; set; } = "#000000";
         public int backgroundOpacity { get; set; } = 70;
         public int backgroundSpread { get; set; } = 12;
+        public String transitionMode { get; set; } = "Legacy";
 
         public override string ToString()
         {
             return $"AppConfig(newlyGenerated: {newlyGenerated}, fontName: {fontName}, fontSize: {fontSize}, " +
                    $"bold: {bold}, italic: {italic}, dropShadow: {dropShadow}, fontColorHex: {fontColorHex}, " +
                    $"screenName: {screenName}, xOffset: {xOffset}, yOffset: {yOffset}, apiKey: {apiKey}, rememberApiKey: {rememberApiKey}, " +
-                   $"backgroundEnabled: {backgroundEnabled}, backgroundColorHex: {backgroundColorHex}, backgroundOpacity: {backgroundOpacity}, backgroundSpread: {backgroundSpread})";
+                   $"backgroundEnabled: {backgroundEnabled}, backgroundColorHex: {backgroundColorHex}, backgroundOpacity: {backgroundOpacity}, backgroundSpread: {backgroundSpread}, transitionMode: {transitionMode})";
         }
 
     }

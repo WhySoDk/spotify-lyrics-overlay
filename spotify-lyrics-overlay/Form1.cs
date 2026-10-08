@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using spotify_lyrics_overlay.Transitions;
 
 namespace spotify_lyrics_overlay
 {
@@ -21,6 +22,9 @@ namespace spotify_lyrics_overlay
             comboBoxFont.DrawItem += ComboBoxFonts_DrawItem;
             comboBoxFont.DataSource = System.Drawing.FontFamily.Families.ToList();
             comboBoxFont.DisplayMember = "Name";
+
+            //populate transition combobox
+            transitionComboBox.Items.AddRange(LyricsTransitions.All.Select(mode => (object)mode.DisplayName).ToArray());
 
             //populate monitor combobox
             monitorComboBox.DrawItem += monitorComboBox_DrawItem;
@@ -67,6 +71,9 @@ namespace spotify_lyrics_overlay
                 setBackgroundColor(Color.Black);
                 backgroundOpacity.Value = 70;
                 backgroundSpread.Value = 12;
+
+                //line transition
+                transitionComboBox.SelectedIndex = 0;
             }
             else
             {
@@ -108,6 +115,9 @@ namespace spotify_lyrics_overlay
                 setBackgroundColor(ColorHelper.FromHex(config.backgroundColorHex, backgroundColor));
                 backgroundOpacity.Value = Math.Clamp(config.backgroundOpacity, backgroundOpacity.Minimum, backgroundOpacity.Maximum);
                 backgroundSpread.Value = Math.Clamp(config.backgroundSpread, backgroundSpread.Minimum, backgroundSpread.Maximum);
+
+                //line transition
+                transitionComboBox.SelectedIndex = Math.Max(0, LyricsTransitions.All.ToList().FindIndex(mode => mode.Id == config.transitionMode));
             }
 
 
@@ -313,6 +323,11 @@ namespace spotify_lyrics_overlay
             updateConfig();
         }
 
+        private void transitionComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            updateConfig();
+        }
+
         private void backgroundOpacity_ValueChanged(object sender, EventArgs e)
         {
             backgroundOpacityValue.Text = $"{backgroundOpacity.Value}%";
@@ -401,6 +416,11 @@ namespace spotify_lyrics_overlay
             config.backgroundEnabled = backgroundCheckBox.Checked;
             config.backgroundColorHex = ColorHelper.ToHex(backgroundColor);
             config.backgroundOpacity = backgroundOpacity.Value;
+
+            if (transitionComboBox.SelectedIndex >= 0)
+            {
+                config.transitionMode = LyricsTransitions.All[transitionComboBox.SelectedIndex].Id;
+            }
             config.backgroundSpread = (int)backgroundSpread.Value;
         }
 
