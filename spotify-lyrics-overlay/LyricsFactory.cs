@@ -315,6 +315,10 @@ namespace spotify_lyrics_overlay
                 return $"{first}\n{second}";
             }
 
+            // lyrics are over, e.g. an empty end marker followed by an instrumental outro
+            if (IsLyricsEnded(lyrics, currentLineIndex))
+                return "";
+
             // lines alternate between the top (even index) and bottom (odd index) slot,
             // the other slot previews the upcoming line, or keeps the previous one at the end
             string current = lyrics[currentLineIndex].Text;
@@ -326,6 +330,17 @@ namespace spotify_lyrics_overlay
             return currentLineIndex % 2 == 0
                 ? $"{highlighted}\n{other}"
                 : $"{other}\n{highlighted}";
+        }
+
+        //true when the current line is empty and no lyrics come after it
+        public static bool IsLyricsEnded(List<LyricLine> lyrics, int currentLineIndex)
+        {
+            for (int i = currentLineIndex; i < lyrics.Count; i++)
+            {
+                if (!string.IsNullOrWhiteSpace(lyrics[i].Text))
+                    return false;
+            }
+            return true;
         }
 
     }
