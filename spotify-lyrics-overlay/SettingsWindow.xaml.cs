@@ -54,6 +54,7 @@ namespace spotify_lyrics_overlay
                 fontSizeBox.Value = 27;
                 selectMonitor(Screen.PrimaryScreen?.DeviceName);
                 setFontColor(ColorHelper.FromHex(DefaultFontColor, Color.Gold));
+                albumColorCheckBox.IsChecked = true;
                 setBackgroundColor(Color.Black);
                 backgroundOpacitySlider.Value = 70;
                 backgroundSpreadBox.Value = 12;

@@ -33,7 +33,7 @@ namespace spotify_lyrics_overlay
                     italic = false,
                     dropShadow = false,
                     fontColorHex = "#f3ce32",
-                    albumColor = false,
+                    albumColor = true,
                     screenName = "",
                     xOffset = 0,
                     yOffset = 540,

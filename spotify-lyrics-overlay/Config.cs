@@ -11,7 +11,7 @@ namespace spotify_lyrics_overlay
         public Boolean italic { get; set; }
         public Boolean dropShadow { get; set; }
         public String fontColorHex { get; set; } = "";
-        public Boolean albumColor { get; set; }
+        public Boolean albumColor { get; set; } = true;
         public String screenName { get; set; } = "";
         public int xOffset { get; set; }
         public int yOffset { get; set; }
