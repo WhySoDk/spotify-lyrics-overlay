@@ -48,7 +48,7 @@ namespace spotify_lyrics_overlay
         {
             httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
             httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
-                "SpotifyLyricsOverlay v1.1.0 (https://github.com/WhySoDk/spotify-lyrics-overlay)"
+                $"SpotifyLyricsOverlay v{typeof(LrcLibLyricsProvider).Assembly.GetName().Version?.ToString(3)} (https://github.com/WhySoDk/spotify-lyrics-overlay)"
             );
         }
 
