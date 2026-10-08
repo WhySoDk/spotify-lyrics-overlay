@@ -49,6 +49,7 @@ namespace spotify_lyrics_overlay
                 monitorComboBox.SelectedIndex = Screen.AllScreens.ToList().FindIndex(s => s == Screen.PrimaryScreen);
 
                 //x&y offset
+                applyOffsetLimits();
                 xOffset.Value = 0;
                 yOffset.Value = 0;
 
@@ -83,8 +84,9 @@ namespace spotify_lyrics_overlay
                     monitorComboBox.SelectedIndex = monitorIndex;
 
                 //x&y offset
-                xOffset.Value = config.xOffset;
-                yOffset.Value = config.yOffset;
+                applyOffsetLimits();
+                xOffset.Value = Math.Clamp(config.xOffset, xOffset.Minimum, xOffset.Maximum);
+                yOffset.Value = Math.Clamp(config.yOffset, yOffset.Minimum, yOffset.Maximum);
 
                 //color
                 colorPictureBox.BackColor = ColorTranslator.FromHtml(config.fontColorHex);
@@ -95,12 +97,6 @@ namespace spotify_lyrics_overlay
                 apiRememberCheck.Checked = config.rememberApiKey;
             }
 
-
-            var (minX, maxX, minY, maxY) = GetOffsetLimits(Screen.AllScreens[monitorComboBox.SelectedIndex]);
-            xOffset.Minimum = minX;
-            xOffset.Maximum = maxX;
-            yOffset.Minimum = minY;
-            yOffset.Maximum = maxY;
 
             isInitializing = false;
             updateConfig();
@@ -139,13 +135,20 @@ namespace spotify_lyrics_overlay
             return (-halfWidth, halfWidth, -halfHeight, halfHeight);
         }
 
-        private void monitorComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        private void applyOffsetLimits()
         {
-            var (minX, maxX, minY, maxY) = GetOffsetLimits(Screen.AllScreens[monitorComboBox.SelectedIndex]);
+            if (monitorComboBox.SelectedItem is not Screen screen) return;
+
+            var (minX, maxX, minY, maxY) = GetOffsetLimits(screen);
             xOffset.Minimum = minX;
             xOffset.Maximum = maxX;
             yOffset.Minimum = minY;
             yOffset.Maximum = maxY;
+        }
+
+        private void monitorComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            applyOffsetLimits();
             updateConfig();
         }
 
@@ -299,10 +302,9 @@ namespace spotify_lyrics_overlay
             config.italic = italicCheckBox.Checked;
             config.dropShadow = dropShadowCheckBox.Checked;
 
-            int monitorIndex = monitorComboBox.SelectedIndex;
-            if (monitorIndex >= 0 && monitorIndex < Screen.AllScreens.Length)
+            if (monitorComboBox.SelectedItem is Screen selectedScreen)
             {
-                config.screenName = Screen.AllScreens[monitorIndex].DeviceName;
+                config.screenName = selectedScreen.DeviceName;
             }
 
             config.xOffset = (int)xOffset.Value;

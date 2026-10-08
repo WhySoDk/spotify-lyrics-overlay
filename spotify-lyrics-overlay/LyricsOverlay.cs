@@ -45,18 +45,30 @@ namespace spotify_lyrics_overlay
             this.FormBorderStyle = FormBorderStyle.None;
             this.ShowInTaskbar = false;
             this.TopMost = true;
-
+            // keep our own position instead of the Windows default location
+            this.StartPosition = FormStartPosition.Manual;
 
             // transparency via the alpha channel of the Bitmap
+            updateScreenBounds();
+        }
+
+        //move the overlay when the selected monitor changes
+        private void updateScreenBounds()
+        {
             var config = ConfigManager.Instance.LoadConfig();
             var screen = Screen.AllScreens.FirstOrDefault(s => s.DeviceName == config.screenName)
-                         ?? Screen.PrimaryScreen;
+                         ?? Screen.PrimaryScreen!;
 
-            this.Bounds = screen.Bounds;
+            if (this.Bounds != screen.Bounds)
+            {
+                this.Bounds = screen.Bounds;
+            }
         }
 
         private void applyConfig()
         {
+            updateScreenBounds();
+
             //call custom render method 
             RenderLayeredWindow();
         }
