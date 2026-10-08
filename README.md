@@ -31,6 +31,18 @@ Any configuration will update the lyrics live.
 If the selected font does not support the shown language, the secondary font is used for that line. With no secondary font set, Windows picks a default font.
 ![Still 2025-06-04 191303_4 1 1 (1)](https://github.com/user-attachments/assets/688c37cd-7329-44ed-b0cc-8f2c728915bc)
 
+# Status messages
+Shown for 5 seconds, then hidden.
+
+| Case | Message |
+|---|---|
+| No lyrics found | No lyrics found |
+| Lyrics not time synced | (Lyrics not sync) |
+| Synced lyrics can't be read | (Can't parse lyrics format) |
+| Instrumental song | (Instrumental) |
+| Lyrics request failed | (Couldn't load lyrics) |
+| Can't reach Spotify | (Can't connect to Spotify) |
+
 # Use case
 Now you can sing along with your song while coding. A study found that this improves code quality by 150 percent.
 ![Screenshot 2025-06-04 183321](https://github.com/user-attachments/assets/28bd844c-b9e4-4879-b079-e0286593ef14)
