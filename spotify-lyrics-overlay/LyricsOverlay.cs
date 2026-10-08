@@ -66,10 +66,15 @@ namespace spotify_lyrics_overlay
             {
                 CreateParams cp = base.CreateParams;
                 // WS_EX_LAYERED (0x80000) | WS_EX_TRANSPARENT (0x20)
-                cp.ExStyle |= 0x80000 | 0x20;
+                // WS_EX_TOOLWINDOW (0x80) keeps it out of Alt+Tab,
+                // WS_EX_NOACTIVATE (0x8000000) keeps it from taking focus
+                cp.ExStyle |= 0x80000 | 0x20 | 0x80 | 0x8000000;
                 return cp;
             }
         }
+
+        //don't steal focus from the active app when the overlay appears
+        protected override bool ShowWithoutActivation => true;
 
         private void initializeOverlay()
         {
