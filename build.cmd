@@ -4,6 +4,14 @@ rem config.json, token.json and lyrics_cache in the release folder are kept.
 setlocal
 cd /d "%~dp0"
 
+rem the exe can't be replaced while it's running, opening it for writing fails then
+if exist release\spotify-lyrics-overlay.exe (
+    2>nul (>>release\spotify-lyrics-overlay.exe echo off) || (
+        echo Close Spotify Lyrics Overlay first, the release exe is in use.
+        exit /b 1
+    )
+)
+
 rem files from older framework-dependent builds
 del /q release\*.dll release\*.pdb release\spotify-lyrics-overlay.deps.json release\spotify-lyrics-overlay.runtimeconfig.json 2>nul
 
