@@ -8,6 +8,8 @@ namespace spotify_lyrics_overlay
     {
         public string? SyncLyrics { get; set; }
         public string? PlainLyrics { get; set; }
+        // lyrics color picked from the album cover, cached together with the lyrics
+        public string? AlbumColorHex { get; set; }
     }
 
     public class LrcLibLyricsProvider
@@ -34,9 +36,14 @@ namespace spotify_lyrics_overlay
         }
 
 
+        private static string GetKey(string trackName, string artistName, int durationSeconds)
+        {
+            return $"{trackName}\n{artistName}\n{durationSeconds}".ToLowerInvariant();
+        }
+
         public Task<LyricsResult?> GetLyricsAsync(string trackName, string artistName, int durationSeconds)
         {
-            string key = $"{trackName}\n{artistName}\n{durationSeconds}".ToLowerInvariant();
+            string key = GetKey(trackName, artistName, durationSeconds);
 
             lock (memoryCache)
             {
@@ -114,6 +121,12 @@ namespace spotify_lyrics_overlay
                 System.Diagnostics.Debug.WriteLine($"Error fetching lyrics: {ex.Message}");
                 return (false, null);
             }
+        }
+
+        //write back a result from GetLyricsAsync after changing it, e.g. adding the album color
+        public void UpdateCache(string trackName, string artistName, int durationSeconds, LyricsResult result)
+        {
+            WriteDiskCache(GetKey(trackName, artistName, durationSeconds), result);
         }
 
         private static string GetCacheFilePath(string key)

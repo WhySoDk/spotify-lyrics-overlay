@@ -25,6 +25,7 @@ namespace spotify_lyrics_overlay
         public int TrackLength { get; set; }
         public double CurrentTime { get; set; }
         public bool IsPlaying { get; set; }
+        public string? AlbumImageUrl { get; set; }
     }
 
     //what the overlay should show right now
@@ -60,6 +61,11 @@ namespace spotify_lyrics_overlay
         private LyricsResult? lyrics;
         private string? parsedLyricsSource;
         private List<LyricLine> parsedLyrics = new();
+
+        // lyrics color from the album cover, only loaded while the option is on
+        private string? albumColorTrackId;
+        private bool albumColorLoading;
+        public Color? AlbumColor { get; private set; }
 
         public LyricsFactory()
         {
@@ -137,7 +143,9 @@ namespace spotify_lyrics_overlay
                     TrackArtists = string.Join(", ", track.Artists.Select(a => a.Name)),
                     TrackLength = track.DurationMs / 1000,
                     CurrentTime = (double)playback.ProgressMs / 1000,
-                    IsPlaying = playback.IsPlaying
+                    IsPlaying = playback.IsPlaying,
+                    // smallest cover is enough for picking a color, same one Shelltify uses
+                    AlbumImageUrl = track.Album?.Images?.OrderBy(image => image.Width).FirstOrDefault()?.Url
                 };
 
                 if (state.TrackId != playbackState?.TrackId)
@@ -180,7 +188,11 @@ namespace spotify_lyrics_overlay
                 lyricsTrackId = state.TrackId;
                 lyricsLoaded = false;
                 lyrics = null;
+                AlbumColor = null;
+                albumColorTrackId = null;
             }
+
+            UpdateAlbumColorForTrack(state);
 
             if (lyricsLoaded || lyricsLoading) return;
 
@@ -206,6 +218,52 @@ namespace spotify_lyrics_overlay
             finally
             {
                 lyricsLoading = false;
+            }
+
+            UpdateAlbumColorForTrack(state);
+        }
+
+        private void UpdateAlbumColorForTrack(PlaybackState state)
+        {
+            if (!ConfigManager.Instance.LoadConfig().albumColor) return;
+
+            // wait for the lyrics, the color is cached with them
+            if (state.TrackId != lyricsTrackId || !lyricsLoaded || albumColorLoading || albumColorTrackId == state.TrackId) return;
+
+            _ = LoadAlbumColorAsync(state);
+        }
+
+        private async Task LoadAlbumColorAsync(PlaybackState state)
+        {
+            albumColorLoading = true;
+            try
+            {
+                var result = lyrics;
+                Color? color = ColorHelper.IsValidHex(result?.AlbumColorHex ?? "")
+                    ? ColorHelper.FromHex(result!.AlbumColorHex!, Color.White)
+                    : null;
+
+                if (color == null && state.AlbumImageUrl != null)
+                {
+                    color = await spotify_lyrics_overlay.AlbumColor.FromImageUrlAsync(state.AlbumImageUrl);
+                    if (color != null && result != null)
+                    {
+                        result.AlbumColorHex = ColorHelper.ToHex(color.Value);
+                        LrcLibLyricsProvider.Instance.UpdateCache(
+                            state.TrackName ?? "", state.TrackArtists ?? "", state.TrackLength, result);
+                    }
+                }
+
+                // ignore the result if the song changed while loading
+                if (state.TrackId == lyricsTrackId)
+                {
+                    AlbumColor = color;
+                    albumColorTrackId = state.TrackId;
+                }
+            }
+            finally
+            {
+                albumColorLoading = false;
             }
         }
 

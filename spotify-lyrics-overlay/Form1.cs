@@ -61,6 +61,7 @@ namespace spotify_lyrics_overlay
                 //color
                 colorPictureBox.BackColor = ColorTranslator.FromHtml("#f3ce32");
                 colorHexBox.Text = "#f3ce32";
+                albumColorCheckBox.Checked = false;
 
                 //key
                 apiKeyBox.Text = "";
@@ -105,6 +106,7 @@ namespace spotify_lyrics_overlay
                 //color
                 colorPictureBox.BackColor = ColorTranslator.FromHtml(config.fontColorHex);
                 colorHexBox.Text = config.fontColorHex;
+                albumColorCheckBox.Checked = config.albumColor;
 
                 //key
                 apiKeyBox.Text = config.apiKey;
@@ -321,6 +323,11 @@ namespace spotify_lyrics_overlay
             pickColor(backgroundColor, setBackgroundColor);
         }
 
+        private void albumColorCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            updateConfig();
+        }
+
         private void backgroundCheckBox_CheckedChanged(object sender, EventArgs e)
         {
             updateConfig();
@@ -412,6 +419,7 @@ namespace spotify_lyrics_overlay
             config.yOffset = (int)yOffset.Value;
 
             config.fontColorHex = colorHexBox.Text;
+            config.albumColor = albumColorCheckBox.Checked;
 
             config.rememberApiKey = apiRememberCheck.Checked;
             config.apiKey = apiRememberCheck.Checked ? apiKeyBox.Text : "";

@@ -23,6 +23,9 @@ namespace spotify_lyrics_overlay
         private LyricsTransitions.Mode? transitionMode;
         private ILyricsTransition transition = new LegacyTransition();
 
+        // text color from the album cover, null uses the configured color
+        private Color? albumColor;
+
         // background box, glides toward the size of the finished layout instead of snapping
         private const float BoxSmoothingSeconds = 0.06f;
         private const float MaxBoxFrameSeconds = 0.025f;
@@ -156,7 +159,12 @@ namespace spotify_lyrics_overlay
             }
 
             bool needsRender = transition.Update(lyricsFactory.getLyricsView());
-            if (needsRender || modeChanged || boxAnimating)
+
+            var color = config.albumColor ? lyricsFactory.AlbumColor : null;
+            bool colorChanged = color != albumColor;
+            albumColor = color;
+
+            if (needsRender || modeChanged || colorChanged || boxAnimating)
             {
                 RenderLayeredWindow();
             }
@@ -174,7 +182,7 @@ namespace spotify_lyrics_overlay
             if (config.italic) style |= FontStyle.Italic;
 
             using var font = new Font(config.fontName ?? "Arial", config.fontSize, style);
-            var textColor = ColorTranslator.FromHtml(config.fontColorHex);
+            var textColor = albumColor ?? ColorTranslator.FromHtml(config.fontColorHex);
 
             // 1. Layout the text, positions are relative to the selected screen
             float centerY = screenBounds.Height / 2f - config.yOffset;

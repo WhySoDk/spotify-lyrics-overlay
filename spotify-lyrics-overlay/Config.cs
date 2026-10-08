@@ -9,6 +9,7 @@
         public Boolean italic { get; set; }
         public Boolean dropShadow { get; set; }
         public String fontColorHex { get; set; } = "";
+        public Boolean albumColor { get; set; }
         public String screenName { get; set; } = "";
         public int xOffset { get; set; }
         public int yOffset { get; set; }
@@ -23,7 +24,7 @@
         public override string ToString()
         {
             return $"AppConfig(newlyGenerated: {newlyGenerated}, fontName: {fontName}, fontSize: {fontSize}, " +
-                   $"bold: {bold}, italic: {italic}, dropShadow: {dropShadow}, fontColorHex: {fontColorHex}, " +
+                   $"bold: {bold}, italic: {italic}, dropShadow: {dropShadow}, fontColorHex: {fontColorHex}, albumColor: {albumColor}, " +
                    $"screenName: {screenName}, xOffset: {xOffset}, yOffset: {yOffset}, apiKey: {apiKey}, rememberApiKey: {rememberApiKey}, " +
                    $"backgroundEnabled: {backgroundEnabled}, backgroundColorHex: {backgroundColorHex}, backgroundOpacity: {backgroundOpacity}, backgroundSpread: {backgroundSpread}, transitionMode: {transitionMode})";
         }

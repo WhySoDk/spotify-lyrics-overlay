@@ -61,6 +61,7 @@
             backgroundOpacityValue = new Label();
             transitionText = new Label();
             transitionComboBox = new ComboBox();
+            albumColorCheckBox = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)xOffset).BeginInit();
             ((System.ComponentModel.ISupportInitialize)yOffset).BeginInit();
             ((System.ComponentModel.ISupportInitialize)colorPictureBox).BeginInit();
@@ -459,6 +460,20 @@
             transitionComboBox.Size = new Size(295, 29);
             transitionComboBox.TabIndex = 34;
             transitionComboBox.SelectedIndexChanged += transitionComboBox_SelectedIndexChanged;
+            //
+            // albumColorCheckBox
+            //
+            albumColorCheckBox.AutoSize = false;
+            albumColorCheckBox.Font = new Font("Segoe UI", 12F);
+            albumColorCheckBox.ForeColor = SystemColors.ControlLight;
+            albumColorCheckBox.Location = new Point(167, 93);
+            albumColorCheckBox.Name = "albumColorCheckBox";
+            albumColorCheckBox.RightToLeft = RightToLeft.Yes;
+            albumColorCheckBox.Size = new Size(140, 22);
+            albumColorCheckBox.TabIndex = 35;
+            albumColorCheckBox.Text = "Album color";
+            albumColorCheckBox.UseVisualStyleBackColor = true;
+            albumColorCheckBox.CheckedChanged += albumColorCheckBox_CheckedChanged;
             // 
             // Form1
             // 
@@ -466,6 +481,7 @@
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(27, 43, 52);
             ClientSize = new Size(319, 590);
+            Controls.Add(albumColorCheckBox);
             Controls.Add(transitionComboBox);
             Controls.Add(transitionText);
             Controls.Add(backgroundOpacityValue);
@@ -551,5 +567,6 @@
         private Label backgroundOpacityValue;
         private Label transitionText;
         private ComboBox transitionComboBox;
+        private CheckBox albumColorCheckBox;
     }
 }
