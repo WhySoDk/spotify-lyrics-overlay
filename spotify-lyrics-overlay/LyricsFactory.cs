@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using SpotifyAPI.Web;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace spotify_lyrics_overlay
@@ -112,25 +113,36 @@ namespace spotify_lyrics_overlay
             return GetKaraokeLines(parsedLyrics, playBackState.CurrentTime);
         }
 
+        private static readonly Regex TimestampRegex = new(@"^\[(\d+):(\d+(?:[.:]\d+)?)\]");
+        private static readonly Regex WordTimestampRegex = new(@"<\d+:\d+(?:[.:]\d+)?>");
+
         public static List<LyricLine> ParseLyrics(string rawLyrics)
         {
             var lines = new List<LyricLine>();
-            var regex = new Regex(@"\[(\d+):(\d+\.\d+)]\s*(.*)");
 
             foreach (string rawLine in rawLyrics.Split('\n'))
             {
-                var match = regex.Match(rawLine);
-                if (match.Success)
+                // a line can have several timestamps, e.g. "[00:12.00][01:30.00]chorus"
+                var times = new List<double>();
+                string rest = rawLine.Trim();
+                Match match;
+                while ((match = TimestampRegex.Match(rest)).Success)
                 {
-                    int minutes = int.Parse(match.Groups[1].Value);
-                    double seconds = double.Parse(match.Groups[2].Value);
-                    string text = match.Groups[3].Value.Trim();
+                    int minutes = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+                    double seconds = double.Parse(match.Groups[2].Value.Replace(':', '.'), CultureInfo.InvariantCulture);
+                    times.Add(minutes * 60 + seconds);
+                    rest = rest.Substring(match.Length);
+                }
 
-                    lines.Add(new LyricLine(minutes * 60 + seconds, text));
+                string text = WordTimestampRegex.Replace(rest, "").Trim();
+                foreach (double time in times)
+                {
+                    lines.Add(new LyricLine(time, text));
                 }
             }
 
-            return lines;
+            // stable sort so lines with equal timestamps keep their order
+            return lines.OrderBy(l => l.Time).ToList();
         }
 
 
@@ -139,60 +151,32 @@ namespace spotify_lyrics_overlay
             if (lyrics == null || lyrics.Count == 0)
                 return "";
 
+            // last line that has already started
             int currentLineIndex = -1;
-            for (int i = 0; i < lyrics.Count; i++)
+            for (int i = 0; i < lyrics.Count && lyrics[i].Time <= currentTime; i++)
             {
-                if (lyrics[i].Time <= currentTime)
-                    currentLineIndex = i;
-                else
-                    break;
+                currentLineIndex = i;
             }
 
             if (currentLineIndex == -1)
             {
-                if (lyrics.Count >= 2)
-                    return $"{lyrics[0].Text}\n{lyrics[1].Text}";
-                else if (lyrics.Count == 1)
-                    return lyrics[0].Text;
-                else
-                    return "";
+                // song has not reached the first line yet, preview the first two
+                string first = lyrics[0].Text;
+                string second = lyrics.Count >= 2 ? lyrics[1].Text : "";
+                return $"{first}\n{second}";
             }
 
-            bool isOddLine = currentLineIndex % 2 == 0;
+            // lines alternate between the top (even index) and bottom (odd index) slot,
+            // the other slot previews the upcoming line, or keeps the previous one at the end
+            string current = lyrics[currentLineIndex].Text;
+            string highlighted = string.IsNullOrWhiteSpace(current) ? "" : ">" + current;
 
-            string oddLineText = "";
-            string evenLineText = "";
+            int otherIndex = currentLineIndex + 1 < lyrics.Count ? currentLineIndex + 1 : currentLineIndex - 1;
+            string other = otherIndex >= 0 ? lyrics[otherIndex].Text : "";
 
-            if (isOddLine)
-            {
-                if (lyrics[currentLineIndex].Text != "")
-                {
-                    oddLineText = ">" + lyrics[currentLineIndex].Text;
-                }
-                
-                int nextEvenIndex = currentLineIndex + 1;
-                if (nextEvenIndex < lyrics.Count)
-                    evenLineText = lyrics[nextEvenIndex].Text;
-            }
-            else
-            {
-                if (lyrics[currentLineIndex].Text != "")
-                {
-                    evenLineText = ">" + lyrics[currentLineIndex].Text;
-                }
-
-                int nextOddIndex = currentLineIndex + 1;
-                if (nextOddIndex < lyrics.Count)
-                    oddLineText = lyrics[nextOddIndex].Text;
-                else
-                {
-                    int prevOddIndex = currentLineIndex - 1;
-                    if (prevOddIndex >= 0)
-                        oddLineText = lyrics[prevOddIndex].Text;
-                }
-            }
-
-            return $"{oddLineText}\n{evenLineText}";
+            return currentLineIndex % 2 == 0
+                ? $"{highlighted}\n{other}"
+                : $"{other}\n{highlighted}";
         }
 
     }
