@@ -109,6 +109,10 @@ namespace spotify_lyrics_overlay
             }
 
 
+            //color picker icons
+            colorPickerButton.Image = createColorPickerIcon();
+            backgroundColorPickerButton.Image = createColorPickerIcon();
+
             isInitializing = false;
             updateConfig();
             //overlay = new LyricsOverlay(() => isStarted);
@@ -250,6 +254,34 @@ namespace spotify_lyrics_overlay
         {
             colorHexBox.Text = ColorTranslator.ToHtml(colorPictureBox.BackColor);
             updateConfig();
+        }
+
+        //draw an eyedropper icon, scaled for the current DPI
+        private Bitmap createColorPickerIcon()
+        {
+            float scale = DeviceDpi / 96f;
+            int size = (int)Math.Round(16 * scale);
+            var icon = new Bitmap(size, size);
+
+            using var g = Graphics.FromImage(icon);
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            g.ScaleTransform(scale, scale);
+            g.TranslateTransform(8, 8);
+            g.RotateTransform(45);
+
+            using var brush = new SolidBrush(Color.FromArgb(50, 50, 50));
+            // bulb
+            g.FillEllipse(brush, -2.6f, -8f, 5.2f, 5.5f);
+            // collar
+            g.FillRectangle(brush, -3.6f, -3.6f, 7.2f, 1.6f);
+            // glass tube with the tip pointing to the bottom left
+            g.FillPolygon(brush, new[]
+            {
+                new PointF(-1.6f, -2f), new PointF(1.6f, -2f),
+                new PointF(1f, 5f), new PointF(0f, 7.5f), new PointF(-1f, 5f)
+            });
+
+            return icon;
         }
 
         private void setBackgroundColor(Color color)
