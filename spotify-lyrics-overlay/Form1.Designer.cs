@@ -51,9 +51,17 @@
             colorHexBox = new TextBox();
             colorPickerButton = new Button();
             dropShadowCheckBox = new CheckBox();
+            backgroundCheckBox = new CheckBox();
+            backgroundColorPictureBox = new PictureBox();
+            backgroundColorHexBox = new TextBox();
+            backgroundColorPickerButton = new Button();
+            backgroundSpreadText = new Label();
+            backgroundSpread = new NumericUpDown();
             ((System.ComponentModel.ISupportInitialize)xOffset).BeginInit();
             ((System.ComponentModel.ISupportInitialize)yOffset).BeginInit();
             ((System.ComponentModel.ISupportInitialize)colorPictureBox).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)backgroundColorPictureBox).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)backgroundSpread).BeginInit();
             SuspendLayout();
             // 
             // fontText
@@ -193,7 +201,7 @@
             apiKeyText.AutoSize = true;
             apiKeyText.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
             apiKeyText.ForeColor = SystemColors.ControlLight;
-            apiKeyText.Location = new Point(8, 262);
+            apiKeyText.Location = new Point(8, 347);
             apiKeyText.Name = "apiKeyText";
             apiKeyText.Size = new Size(133, 21);
             apiKeyText.TabIndex = 13;
@@ -204,7 +212,7 @@
             // 
             apiKeyBox.Font = new Font("Segoe UI", 12F);
             apiKeyBox.ForeColor = SystemColors.ControlText;
-            apiKeyBox.Location = new Point(12, 284);
+            apiKeyBox.Location = new Point(12, 369);
             apiKeyBox.Name = "apiKeyBox";
             apiKeyBox.PasswordChar = '•';
             apiKeyBox.Size = new Size(295, 29);
@@ -217,7 +225,7 @@
             apiRememberCheck.AutoSize = true;
             apiRememberCheck.Font = new Font("Segoe UI", 12F);
             apiRememberCheck.ForeColor = SystemColors.ControlLight;
-            apiRememberCheck.Location = new Point(7, 311);
+            apiRememberCheck.Location = new Point(7, 396);
             apiRememberCheck.Name = "apiRememberCheck";
             apiRememberCheck.RightToLeft = RightToLeft.Yes;
             apiRememberCheck.Size = new Size(167, 25);
@@ -258,7 +266,7 @@
             runButton.FlatStyle = FlatStyle.Popup;
             runButton.Font = new Font("Segoe UI", 20F, FontStyle.Bold, GraphicsUnit.Point, 0);
             runButton.ForeColor = SystemColors.ControlLight;
-            runButton.Location = new Point(12, 347);
+            runButton.Location = new Point(12, 432);
             runButton.Name = "runButton";
             runButton.Size = new Size(295, 69);
             runButton.TabIndex = 18;
@@ -322,12 +330,85 @@
             dropShadowCheckBox.UseVisualStyleBackColor = true;
             dropShadowCheckBox.CheckedChanged += dropShadowCheckBox_CheckedChanged;
             // 
+            // backgroundCheckBox
+            // 
+            backgroundCheckBox.AutoSize = true;
+            backgroundCheckBox.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            backgroundCheckBox.ForeColor = SystemColors.ControlLight;
+            backgroundCheckBox.Location = new Point(7, 261);
+            backgroundCheckBox.Name = "backgroundCheckBox";
+            backgroundCheckBox.RightToLeft = RightToLeft.Yes;
+            backgroundCheckBox.Size = new Size(155, 25);
+            backgroundCheckBox.TabIndex = 24;
+            backgroundCheckBox.Text = "Background box";
+            backgroundCheckBox.UseVisualStyleBackColor = true;
+            backgroundCheckBox.CheckedChanged += backgroundCheckBox_CheckedChanged;
+            // 
+            // backgroundColorPictureBox
+            // 
+            backgroundColorPictureBox.BackColor = Color.Black;
+            backgroundColorPictureBox.Location = new Point(12, 288);
+            backgroundColorPictureBox.Name = "backgroundColorPictureBox";
+            backgroundColorPictureBox.Size = new Size(29, 29);
+            backgroundColorPictureBox.TabIndex = 25;
+            backgroundColorPictureBox.TabStop = false;
+            // 
+            // backgroundColorHexBox
+            // 
+            backgroundColorHexBox.Font = new Font("Segoe UI", 12F);
+            backgroundColorHexBox.ForeColor = SystemColors.ControlText;
+            backgroundColorHexBox.Location = new Point(47, 288);
+            backgroundColorHexBox.Name = "backgroundColorHexBox";
+            backgroundColorHexBox.PlaceholderText = "#RRGGBBAA";
+            backgroundColorHexBox.Size = new Size(120, 29);
+            backgroundColorHexBox.TabIndex = 26;
+            backgroundColorHexBox.Leave += backgroundColorHexBox_stopFocus;
+            // 
+            // backgroundColorPickerButton
+            // 
+            backgroundColorPickerButton.ForeColor = SystemColors.ControlText;
+            backgroundColorPickerButton.Location = new Point(173, 289);
+            backgroundColorPickerButton.Name = "backgroundColorPickerButton";
+            backgroundColorPickerButton.Size = new Size(29, 29);
+            backgroundColorPickerButton.TabIndex = 27;
+            backgroundColorPickerButton.UseVisualStyleBackColor = true;
+            backgroundColorPickerButton.Click += backgroundColorPickerButton_Click;
+            // 
+            // backgroundSpreadText
+            // 
+            backgroundSpreadText.AutoSize = true;
+            backgroundSpreadText.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            backgroundSpreadText.ForeColor = SystemColors.ControlLight;
+            backgroundSpreadText.Location = new Point(208, 266);
+            backgroundSpreadText.Name = "backgroundSpreadText";
+            backgroundSpreadText.Size = new Size(59, 21);
+            backgroundSpreadText.TabIndex = 28;
+            backgroundSpreadText.Text = "Spread";
+            backgroundSpreadText.TextAlign = ContentAlignment.MiddleLeft;
+            // 
+            // backgroundSpread
+            // 
+            backgroundSpread.Font = new Font("Segoe UI", 12F);
+            backgroundSpread.ForeColor = SystemColors.ControlText;
+            backgroundSpread.Location = new Point(212, 288);
+            backgroundSpread.Maximum = new decimal(new int[] { 500, 0, 0, 0 });
+            backgroundSpread.Name = "backgroundSpread";
+            backgroundSpread.Size = new Size(95, 29);
+            backgroundSpread.TabIndex = 29;
+            backgroundSpread.ValueChanged += backgroundSpread_ValueChanged;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(27, 43, 52);
-            ClientSize = new Size(319, 430);
+            ClientSize = new Size(319, 515);
+            Controls.Add(backgroundSpread);
+            Controls.Add(backgroundSpreadText);
+            Controls.Add(backgroundColorPickerButton);
+            Controls.Add(backgroundColorHexBox);
+            Controls.Add(backgroundColorPictureBox);
+            Controls.Add(backgroundCheckBox);
             Controls.Add(dropShadowCheckBox);
             Controls.Add(colorPickerButton);
             Controls.Add(colorHexBox);
@@ -351,8 +432,8 @@
             Controls.Add(fontText);
             Controls.Add(apiRememberCheck);
             MaximizeBox = false;
-            MaximumSize = new Size(335, 469);
-            MinimumSize = new Size(335, 469);
+            MaximumSize = new Size(335, 554);
+            MinimumSize = new Size(335, 554);
             Name = "Form1";
             Text = "Spotify-Lyrics-Overlay";
             FormClosing += Form1_FormClosing;
@@ -360,6 +441,8 @@
             ((System.ComponentModel.ISupportInitialize)xOffset).EndInit();
             ((System.ComponentModel.ISupportInitialize)yOffset).EndInit();
             ((System.ComponentModel.ISupportInitialize)colorPictureBox).EndInit();
+            ((System.ComponentModel.ISupportInitialize)backgroundColorPictureBox).EndInit();
+            ((System.ComponentModel.ISupportInitialize)backgroundSpread).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -389,5 +472,11 @@
         private TextBox colorHexBox;
         private Button colorPickerButton;
         private CheckBox dropShadowCheckBox;
+        private CheckBox backgroundCheckBox;
+        private PictureBox backgroundColorPictureBox;
+        private TextBox backgroundColorHexBox;
+        private Button backgroundColorPickerButton;
+        private Label backgroundSpreadText;
+        private NumericUpDown backgroundSpread;
     }
 }

@@ -14,12 +14,16 @@
         public int yOffset { get; set; }
         public String apiKey { get; set; } = "";
         public Boolean rememberApiKey { get; set; }
+        public Boolean backgroundEnabled { get; set; }
+        public String backgroundColorHex { get; set; } = "#000000B4";
+        public int backgroundSpread { get; set; } = 12;
 
         public override string ToString()
         {
             return $"AppConfig(newlyGenerated: {newlyGenerated}, fontName: {fontName}, fontSize: {fontSize}, " +
                    $"bold: {bold}, italic: {italic}, dropShadow: {dropShadow}, fontColorHex: {fontColorHex}, " +
-                   $"screenName: {screenName}, xOffset: {xOffset}, yOffset: {yOffset}, apiKey: {apiKey}, rememberApiKey: {rememberApiKey})";
+                   $"screenName: {screenName}, xOffset: {xOffset}, yOffset: {yOffset}, apiKey: {apiKey}, rememberApiKey: {rememberApiKey}, " +
+                   $"backgroundEnabled: {backgroundEnabled}, backgroundColorHex: {backgroundColorHex}, backgroundSpread: {backgroundSpread})";
         }
 
     }

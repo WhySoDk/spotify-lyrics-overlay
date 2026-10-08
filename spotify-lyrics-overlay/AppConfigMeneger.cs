@@ -36,7 +36,10 @@ namespace spotify_lyrics_overlay
                     xOffset = 0,
                     yOffset = 540,
                     apiKey = "",
-                    rememberApiKey = false
+                    rememberApiKey = false,
+                    backgroundEnabled = false,
+                    backgroundColorHex = "#000000B4",
+                    backgroundSpread = 12
                 };
 
                 //System.Diagnostics.Debug.WriteLine("Check read json" + Config.ToString());

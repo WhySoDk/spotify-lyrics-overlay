@@ -142,12 +142,29 @@ namespace spotify_lyrics_overlay
 
                     var lines = currentLyrics.Split(new[] { '\n' }, StringSplitOptions.None);
 
-                    float totalHeight = lines.Sum(line => g.MeasureString(line, font).Height);
+                    var lineSizes = lines.Select(line => g.MeasureString(line, font)).ToArray();
+                    float totalHeight = lineSizes.Sum(size => size.Height);
                     float y = this.Height / 2f - totalHeight / 2f - config.yOffset;
 
-                    foreach (var line in lines)
+                    // Draw Background box around the whole text block
+                    if (config.backgroundEnabled && !string.IsNullOrWhiteSpace(currentLyrics))
                     {
-                        var textSize = g.MeasureString(line, font);
+                        float maxWidth = lineSizes.Max(size => size.Width);
+                        float spread = config.backgroundSpread;
+                        var boxColor = ColorHelper.FromRgbaHex(config.backgroundColorHex, Color.FromArgb(180, 0, 0, 0));
+
+                        using var boxBrush = new SolidBrush(boxColor);
+                        g.FillRectangle(boxBrush,
+                            this.Width / 2f - maxWidth / 2f + config.xOffset - spread,
+                            y - spread,
+                            maxWidth + spread * 2,
+                            totalHeight + spread * 2);
+                    }
+
+                    for (int i = 0; i < lines.Length; i++)
+                    {
+                        var line = lines[i];
+                        var textSize = lineSizes[i];
                         float x = this.Width / 2f - textSize.Width / 2f + config.xOffset;
 
                         // Draw Shadow
