@@ -12,6 +12,8 @@ namespace spotify_lyrics_overlay.Transitions
         public float? Fill;
         public float Y;
         public float X;
+        //horizontal shift from the centered position
+        public float OffsetX;
         public SizeF Size;
     }
 

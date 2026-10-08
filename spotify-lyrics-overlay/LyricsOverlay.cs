@@ -181,7 +181,7 @@ namespace spotify_lyrics_overlay
             var items = transition.Layout(measureGraphics, font, centerY);
             foreach (var item in items)
             {
-                item.X = screenBounds.Width / 2f - item.Size.Width / 2f + config.xOffset;
+                item.X = screenBounds.Width / 2f - item.Size.Width / 2f + config.xOffset + item.OffsetX;
             }
 
             bool hasText = items.Any(item => !string.IsNullOrWhiteSpace(item.Text));

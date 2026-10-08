@@ -14,6 +14,7 @@ namespace spotify_lyrics_overlay.Transitions
             new Mode("Scroll", "Scroll", () => new ScrollTransition()),
             new Mode("Pop", "Pop", () => new PopTransition()),
             new Mode("Karaoke", "Karaoke fill", () => new KaraokeTransition()),
+            new Mode("Push", "Push sideways", () => new PushTransition()),
         };
 
         public static Mode Find(string id)
