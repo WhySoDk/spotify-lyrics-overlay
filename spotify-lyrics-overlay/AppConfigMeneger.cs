@@ -39,6 +39,8 @@ namespace spotify_lyrics_overlay
                     yOffset = 540,
                     apiKey = "",
                     rememberApiKey = false,
+                    rememberRunState = false,
+                    wasStarted = false,
                     backgroundEnabled = false,
                     backgroundColorHex = "#000000",
                     backgroundOpacity = 70,

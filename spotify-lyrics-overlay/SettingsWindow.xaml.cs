@@ -80,6 +80,7 @@ namespace spotify_lyrics_overlay
 
                 clientIdBox.Password = config.apiKey;
                 rememberClientIdCheckBox.IsChecked = config.rememberApiKey;
+                rememberRunStateCheckBox.IsChecked = config.rememberRunState;
 
                 backgroundCheckBox.IsChecked = config.backgroundEnabled;
                 setBackgroundColor(ColorHelper.FromHex(config.backgroundColorHex, backgroundColor));
@@ -94,8 +95,13 @@ namespace spotify_lyrics_overlay
 
             showRunState();
 
+            // the overlay needs the Client ID to log in, so it's only started when one is remembered
+            bool autoStart = !config.newlyGenerated && config.rememberRunState && config.wasStarted && clientIdBox.Password.Length > 0;
+
             isInitializing = false;
             updateConfig();
+
+            if (autoStart) Loaded += (s, e) => setStarted(true);
         }
 
         private static Brush frozenBrush(byte r, byte g, byte b)
@@ -242,6 +248,8 @@ namespace spotify_lyrics_overlay
 
             config.rememberApiKey = rememberClientIdCheckBox.IsChecked == true;
             config.apiKey = config.rememberApiKey ? clientIdBox.Password : "";
+            config.rememberRunState = rememberRunStateCheckBox.IsChecked == true;
+            config.wasStarted = isStarted;
 
             config.backgroundEnabled = backgroundCheckBox.IsChecked == true;
             config.backgroundColorHex = ColorHelper.ToHex(backgroundColor);
@@ -257,10 +265,13 @@ namespace spotify_lyrics_overlay
             config.debugShowCacheHits = debugCacheHitsCheckBox.IsChecked == true;
         }
 
-        private void runButton_Click(object sender, RoutedEventArgs e)
+        private void runButton_Click(object sender, RoutedEventArgs e) => setStarted(!isStarted);
+
+        private void setStarted(bool started)
         {
-            isStarted = !isStarted;
+            isStarted = started;
             showRunState();
+            updateConfig();
 
             if (isStarted && overlay == null)
             {

@@ -17,6 +17,9 @@ namespace spotify_lyrics_overlay
         public int yOffset { get; set; }
         public String apiKey { get; set; } = "";
         public Boolean rememberApiKey { get; set; }
+        // start the overlay on launch when it was running the last time the app closed
+        public Boolean rememberRunState { get; set; }
+        public Boolean wasStarted { get; set; }
         public Boolean backgroundEnabled { get; set; }
         public String backgroundColorHex { get; set; } = "#000000";
         public int backgroundOpacity { get; set; } = 70;
@@ -31,6 +34,7 @@ namespace spotify_lyrics_overlay
             return $"AppConfig(newlyGenerated: {newlyGenerated}, fontName: {fontName}, secondaryFontName: {secondaryFontName}, fontSize: {fontSize}, " +
                    $"bold: {bold}, italic: {italic}, dropShadow: {dropShadow}, fontColorHex: {fontColorHex}, albumColor: {albumColor}, " +
                    $"screenName: {screenName}, xOffset: {xOffset}, yOffset: {yOffset}, apiKey: {apiKey}, rememberApiKey: {rememberApiKey}, " +
+                   $"rememberRunState: {rememberRunState}, wasStarted: {wasStarted}, " +
                    $"backgroundEnabled: {backgroundEnabled}, backgroundColorHex: {backgroundColorHex}, backgroundOpacity: {backgroundOpacity}, backgroundSpread: {backgroundSpread}, transitionMode: {transitionMode}, " +
                    $"debugEnabled: {debugEnabled}, debugShowCacheHits: {debugShowCacheHits})";
         }

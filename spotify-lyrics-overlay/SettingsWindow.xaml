@@ -269,6 +269,8 @@
                     <TextBlock Style="{StaticResource FieldLabel}" Text="Client ID" />
                     <PasswordBox x:Name="clientIdBox" PasswordChanged="setting_Changed" />
                     <CheckBox x:Name="rememberClientIdCheckBox" Content="Remember Client ID" Margin="0,8,0,0" Click="setting_Changed" />
+                    <CheckBox x:Name="rememberRunStateCheckBox" Content="Remember Start / Stop" Margin="0,8,0,0" Click="setting_Changed"
+                              ToolTip="Starts the overlay when the app opens if it was running when you closed it" />
                 </StackPanel>
             </Border>
 
