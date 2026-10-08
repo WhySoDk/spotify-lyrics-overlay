@@ -57,6 +57,8 @@ namespace spotify_lyrics_overlay
             return g;
         }
 
+        internal LyricsFactory Lyrics => lyricsFactory;
+
         public LyricsOverlay(Func<bool> isStartedProvider)
         {
             this.isStartedProvider = isStartedProvider;

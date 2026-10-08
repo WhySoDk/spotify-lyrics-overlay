@@ -269,6 +269,16 @@ namespace spotify_lyrics_overlay
             }
         }
 
+        private void refetchButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!isStarted || overlay?.Lyrics.RefetchCurrentSong() != true) showNothingPlaying();
+        }
+
+        private void showNothingPlaying()
+        {
+            System.Windows.MessageBox.Show(this, "Start the overlay and play a song on Spotify first.", Title);
+        }
+
         private void showRunState()
         {
             runButton.Content = isStarted ? "Stop" : "Start";

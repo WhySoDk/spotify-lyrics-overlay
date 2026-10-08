@@ -83,6 +83,9 @@ namespace spotify_lyrics_overlay
         //true while the album color for the playing song is still being picked
         public bool AlbumColorPending => playbackState?.TrackId is string trackId && albumColorTrackId != trackId;
 
+        //song from the last Spotify poll, null when nothing is playing
+        public PlaybackState? CurrentSong => playbackState;
+
         public LyricsFactory()
         {
         }
@@ -182,6 +185,31 @@ namespace spotify_lyrics_overlay
             {
                 UpdateLyricsForTrack(state);
             }
+        }
+
+        //look up the lyrics and album color of the playing song again, skipping every cache.
+        //false when nothing is playing
+        public bool RefetchCurrentSong()
+        {
+            var state = playbackState;
+            if (state == null) return false;
+
+            LrcLibLyricsProvider.Instance.ClearCache(state.TrackName ?? "", state.TrackArtists ?? "", state.TrackLength);
+            if (state.AlbumImageUrl != null) spotify_lyrics_overlay.AlbumColor.Forget(state.AlbumImageUrl);
+            ReloadSong(state.TrackId);
+            return true;
+        }
+
+        //load the lyrics and album color of the song again if it's still playing, from the cache when there is one
+        public void ReloadSong(string? trackId)
+        {
+            var state = playbackState;
+            if (state == null || state.TrackId != trackId) return;
+
+            // a different id makes UpdateLyricsForTrack start over
+            lyricsTrackId = null;
+            statusKey = null;
+            UpdateLyricsForTrack(state);
         }
 
         private TimeSpan GetNextPollDelay()

@@ -12,6 +12,12 @@ namespace spotify_lyrics_overlay
         // songs without lyrics have no cache entry, remember their colors for this session
         private static readonly Dictionary<string, Color?> memoryCache = new();
 
+        //pick the color of the cover again on the next lookup
+        public static void Forget(string url)
+        {
+            memoryCache.Remove(url);
+        }
+
         //null when the cover can't be loaded or has no usable color
         public static async Task<Color?> FromImageUrlAsync(string url)
         {

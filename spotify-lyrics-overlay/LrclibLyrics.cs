@@ -291,6 +291,26 @@ namespace spotify_lyrics_overlay
             WriteDiskCache(GetKey(trackName, artistName, durationSeconds), result);
         }
 
+        //forget everything cached for the song, the next lookup asks lrclib again
+        public void ClearCache(string trackName, string artistName, int durationSeconds)
+        {
+            string key = GetKey(trackName, artistName, durationSeconds);
+            lock (memoryCache)
+            {
+                memoryCache.Remove(key);
+                failedRequests.Remove(key);
+            }
+
+            try
+            {
+                File.Delete(GetCacheFilePath(key));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error deleting lyrics cache: {ex.Message}");
+            }
+        }
+
         private static string GetCacheFilePath(string key)
         {
             var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)));
