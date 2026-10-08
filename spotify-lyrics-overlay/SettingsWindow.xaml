@@ -282,6 +282,11 @@
                     LRCLIB
                 </Hyperlink>
                 <Run Text="  ·  " Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <Hyperlink NavigateUri="https://www.lyricsify.com/" Foreground="#4CC2FF"
+                           RequestNavigate="Hyperlink_RequestNavigate">
+                    Lyricsify
+                </Hyperlink>
+                <Run Text="  ·  " Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                 <Hyperlink NavigateUri="https://developer.spotify.com/dashboard/create" Foreground="#4CC2FF"
                            RequestNavigate="Hyperlink_RequestNavigate">
                     Spotify Developer Dashboard
