@@ -31,7 +31,7 @@ namespace spotify_lyrics_overlay
         private const string CacheDirectory = "lyrics_cache";
         private static readonly TimeSpan FailedRetryDelay = TimeSpan.FromSeconds(30);
         // synced lyrics are kept forever, no lyrics or plain lyrics only are looked up again after this
-        private static readonly TimeSpan IncompleteCacheDuration = TimeSpan.FromDays(2);
+        private static readonly TimeSpan IncompleteCacheDuration = TimeSpan.FromDays(7);
         private static readonly TimeSpan MaxRetryAfter = TimeSpan.FromSeconds(5);
         private const int MaxAttempts = 3;
         // lrclib's own matching allows ±2 seconds
