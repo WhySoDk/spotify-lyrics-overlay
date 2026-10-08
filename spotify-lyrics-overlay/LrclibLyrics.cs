@@ -18,6 +18,8 @@ namespace spotify_lyrics_overlay
         public DateTime? CheckedAt { get; set; }
         // disk cache only: lrclib had no lyrics for the song
         public bool NotFound { get; set; }
+        // disk cache only: lrclib record picked by hand from a link, never looked up again
+        public bool Manual { get; set; }
     }
 
     //Result is null when lrclib has no lyrics for the song, Failed when the request didn't go through
@@ -93,7 +95,9 @@ namespace spotify_lyrics_overlay
             {
                 if (cached != null && !IsExpired(cached))
                 {
-                    if (IsComplete(cached))
+                    if (cached.Manual)
+                        DebugStatus.Show($"Cache hit (set from a link): {Describe(result)}", cacheHit: true);
+                    else if (IsComplete(cached))
                         DebugStatus.Show("Cache hit", cacheHit: true);
                     else
                         DebugStatus.Show($"Cache: {Describe(result)}, expires in {DebugStatus.FormatDuration(cached.CheckedAt!.Value + IncompleteCacheDuration - DateTime.UtcNow)}");
@@ -258,7 +262,7 @@ namespace spotify_lyrics_overlay
         //entries cached before CheckedAt existed count as expired
         private static bool IsExpired(LyricsResult cached)
         {
-            return !IsComplete(cached) && (cached.CheckedAt is not DateTime checkedAt || DateTime.UtcNow - checkedAt > IncompleteCacheDuration);
+            return !cached.Manual && !IsComplete(cached) && (cached.CheckedAt is not DateTime checkedAt || DateTime.UtcNow - checkedAt > IncompleteCacheDuration);
         }
 
         private static LyricsResult ReadRecord(JsonElement doc)
@@ -289,6 +293,47 @@ namespace spotify_lyrics_overlay
         public void UpdateCache(string trackName, string artistName, int durationSeconds, LyricsResult result)
         {
             WriteDiskCache(GetKey(trackName, artistName, durationSeconds), result);
+        }
+
+        private static readonly Regex RecordLinkRegex = new(@"^(?:(?:https?://)?(?:www\.)?lrclib\.net/(?:tracks|api/get)/)?(\d+)/?(?:[?#].*)?$", RegexOptions.IgnoreCase);
+
+        //use the lrclib record of a link (or just its id) as the lyrics of the song,
+        //returns an error message or null when it was saved
+        public async Task<string?> SetFromLinkAsync(string trackName, string artistName, int durationSeconds, string link)
+        {
+            var match = RecordLinkRegex.Match(link.Trim());
+            if (!match.Success || !long.TryParse(match.Groups[1].Value, out long id))
+                return "That isn't a lrclib link, it should look like https://lrclib.net/tracks/36084871";
+
+            string? json;
+            try
+            {
+                bool ok;
+                (ok, json) = await GetJsonAsync($"https://lrclib.net/api/get/{id}", $"Loading lrclib #{id}");
+                if (!ok) return "Couldn't reach lrclib, try again in a moment";
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading lrclib record: {ex.Message}");
+                return "Couldn't reach lrclib, try again in a moment";
+            }
+            if (json == null) return $"lrclib has no record #{id}";
+
+            var result = ReadRecord(JsonDocument.Parse(json).RootElement);
+            result.Manual = true;
+
+            string key = GetKey(trackName, artistName, durationSeconds);
+            // the album color doesn't depend on the lyrics
+            result.AlbumColorHex = ReadDiskCache(key)?.AlbumColorHex;
+            WriteDiskCache(key, result);
+            lock (memoryCache)
+            {
+                memoryCache[key] = result;
+                failedRequests.Remove(key);
+            }
+
+            DebugStatus.Show($"Lyrics set from lrclib #{id}: {Describe(result)}");
+            return null;
         }
 
         //forget everything cached for the song, the next lookup asks lrclib again
