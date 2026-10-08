@@ -43,26 +43,30 @@ namespace spotify_lyrics_overlay.Transitions
 
         public List<TextItem> Layout(Graphics g, Font font, float centerY)
         {
-            return layout(g, font, centerY, getProgress());
+            if (lines == null) return layoutMessage(g, font, centerY);
+            return LayoutLines(g, font, centerY, getProgress());
         }
 
         public List<TextItem> LayoutTarget(Graphics g, Font font, float centerY)
         {
-            return layout(g, font, centerY, 1f);
+            if (lines == null) return layoutMessage(g, font, centerY);
+            return LayoutTargetLines(g, font, centerY);
         }
 
-        private List<TextItem> layout(Graphics g, Font font, float centerY, float p)
+        private List<TextItem> layoutMessage(Graphics g, Font font, float centerY)
         {
-            if (lines == null)
-            {
-                return LyricsTransitions.StackLines(g, font, centerY, (message ?? "").Split('\n'));
-            }
-            return LayoutLines(g, font, centerY, p);
+            return LyricsTransitions.StackLines(g, font, centerY, (message ?? "").Split('\n'));
         }
 
         //synced lines for the current frame.
         //p: animation progress, 0 = previous line still in place, 1 = done
         protected abstract List<TextItem> LayoutLines(Graphics g, Font font, float centerY, float p);
+
+        //synced lines once the running animation is done
+        protected virtual List<TextItem> LayoutTargetLines(Graphics g, Font font, float centerY)
+        {
+            return LayoutLines(g, font, centerY, 1f);
+        }
 
         //true when only empty lines are left, nothing is shown then
         protected bool Ended => lines != null && index >= 0 && LyricsFactory.IsLyricsEnded(lines, index);
