@@ -45,7 +45,6 @@
             monitorComboBox = new ComboBox();
             monitorText = new Label();
             runButton = new Button();
-            colorDialog = new ColorDialog();
             colorPictureBox = new PictureBox();
             colorText = new Label();
             colorHexBox = new TextBox();
@@ -536,7 +535,6 @@
         public ComboBox monitorComboBox;
         private Label monitorText;
         private Button runButton;
-        private ColorDialog colorDialog;
         private PictureBox colorPictureBox;
         private Label colorText;
         private TextBox colorHexBox;

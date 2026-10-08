@@ -255,10 +255,17 @@ namespace spotify_lyrics_overlay
 
         private void colorPickerButton_Click(object sender, EventArgs e)
         {
-            var res = colorDialog.ShowDialog();
-            if (res == DialogResult.OK)
+            pickColor(colorPictureBox.BackColor, color => colorPictureBox.BackColor = color);
+        }
+
+        //apply is called while picking so the overlay previews the color, cancel puts the old one back
+        private void pickColor(Color current, Action<Color> apply)
+        {
+            using var picker = new ColorPickerForm(current);
+            picker.ColorChanged += apply;
+            if (picker.ShowDialog(this) != DialogResult.OK)
             {
-                colorPictureBox.BackColor = colorDialog.Color;
+                apply(current);
             }
         }
 
@@ -311,11 +318,7 @@ namespace spotify_lyrics_overlay
 
         private void backgroundColorPickerButton_Click(object sender, EventArgs e)
         {
-            colorDialog.Color = backgroundColor;
-            if (colorDialog.ShowDialog() == DialogResult.OK)
-            {
-                setBackgroundColor(colorDialog.Color);
-            }
+            pickColor(backgroundColor, setBackgroundColor);
         }
 
         private void backgroundCheckBox_CheckedChanged(object sender, EventArgs e)
