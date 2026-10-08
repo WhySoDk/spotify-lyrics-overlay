@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using SpotifyAPI.Web;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -154,7 +154,7 @@ namespace spotify_lyrics_overlay
                     TrackLength = track.DurationMs / 1000,
                     CurrentTime = (double)playback.ProgressMs / 1000,
                     IsPlaying = playback.IsPlaying,
-                    // smallest cover is enough for picking a color, same one Shelltify uses
+                    // smallest cover is enough for picking a color
                     AlbumImageUrl = track.Album?.Images?.OrderBy(image => image.Width).FirstOrDefault()?.Url
                 };
 
