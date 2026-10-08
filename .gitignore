@@ -135,3 +135,6 @@ _NCrunch*
 **/config.json
 **/token.json
 **/lyrics_cache/
+
+# Affinity design source files
+*.af
