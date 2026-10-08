@@ -9,33 +9,82 @@ namespace spotify_lyrics_overlay
     {
         private static readonly HttpClient httpClient = new() { Timeout = TimeSpan.FromSeconds(10) };
 
-        // songs without lyrics have no cache entry, remember their colors for this session
-        private static readonly Dictionary<string, Color?> memoryCache = new();
+        // cover url -> picked color as hex, "" when the cover has no usable color.
+        // kept apart from the lyrics so it doesn't wait for them, songs of one album share it
+        private static readonly string CacheFilePath = Path.Combine("lyrics_cache", "album_colors.json");
+        private static readonly object sync = new();
+        private static Dictionary<string, string>? cache;
 
         //pick the color of the cover again on the next lookup
         public static void Forget(string url)
         {
-            memoryCache.Remove(url);
+            lock (sync)
+            {
+                if (LoadCache().Remove(url)) SaveCache();
+            }
         }
 
         //null when the cover can't be loaded or has no usable color
         public static async Task<Color?> FromImageUrlAsync(string url)
         {
-            if (memoryCache.TryGetValue(url, out var cached)) return cached;
+            lock (sync)
+            {
+                if (LoadCache().TryGetValue(url, out var hex))
+                    return ColorHelper.IsValidHex(hex) ? ColorHelper.FromHex(hex, Color.White) : null;
+            }
 
             try
             {
                 var bytes = await httpClient.GetByteArrayAsync(url);
-                using var stream = new MemoryStream(bytes);
-                using var image = new Bitmap(stream);
-                var color = Pick(ColorThief.GetPalette(image, colorCount: 5, quality: 10));
-                memoryCache[url] = color;
+                // decoding and the palette run on a worker thread so the overlay keeps animating
+                var color = await Task.Run(() =>
+                {
+                    using var stream = new MemoryStream(bytes);
+                    using var image = new Bitmap(stream);
+                    return Pick(ColorThief.GetPalette(image, colorCount: 5, quality: 10));
+                });
+
+                lock (sync)
+                {
+                    LoadCache()[url] = color is Color c ? ColorHelper.ToHex(c) : "";
+                    SaveCache();
+                }
                 return color;
             }
             catch (Exception ex)
             {
+                // not cached, tried again next time
                 Debug.WriteLine($"Error loading album color: {ex.Message}");
                 return null;
+            }
+        }
+
+        private static Dictionary<string, string> LoadCache()
+        {
+            if (cache != null) return cache;
+            try
+            {
+                cache = File.Exists(CacheFilePath)
+                    ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(CacheFilePath))
+                    : null;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error reading album color cache: {ex.Message}");
+            }
+            return cache ??= new Dictionary<string, string>();
+        }
+
+        private static void SaveCache()
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(CacheFilePath)!);
+                File.WriteAllText(CacheFilePath, System.Text.Json.JsonSerializer.Serialize(cache));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error writing album color cache: {ex.Message}");
             }
         }
 

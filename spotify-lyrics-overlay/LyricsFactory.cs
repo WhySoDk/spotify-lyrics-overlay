@@ -77,7 +77,8 @@ namespace spotify_lyrics_overlay
 
         // lyrics color from the album cover, only loaded while the option is on
         private string? albumColorTrackId;
-        private bool albumColorLoading;
+        // song whose color is being picked, a new song doesn't wait for the previous one
+        private string? albumColorLoadingTrackId;
         public Color? AlbumColor { get; private set; }
 
         //true while the album color for the playing song is still being picked
@@ -273,40 +274,26 @@ namespace spotify_lyrics_overlay
             {
                 lyricsLoading = false;
             }
-
-            UpdateAlbumColorForTrack(state);
         }
 
         private void UpdateAlbumColorForTrack(PlaybackState state)
         {
             if (!ConfigManager.Instance.LoadConfig().albumColor) return;
 
-            // wait for the lyrics, the color is cached with them
-            if (state.TrackId != lyricsTrackId || !(lyricsLoaded || lyricsFailed) || albumColorLoading || albumColorTrackId == state.TrackId) return;
+            // the cover is known right away, so the color is picked alongside the lyrics lookup
+            if (state.TrackId != lyricsTrackId || albumColorLoadingTrackId == state.TrackId || albumColorTrackId == state.TrackId) return;
 
             _ = LoadAlbumColorAsync(state);
         }
 
         private async Task LoadAlbumColorAsync(PlaybackState state)
         {
-            albumColorLoading = true;
+            albumColorLoadingTrackId = state.TrackId;
             try
             {
-                var result = lyrics;
-                Color? color = ColorHelper.IsValidHex(result?.AlbumColorHex ?? "")
-                    ? ColorHelper.FromHex(result!.AlbumColorHex!, Color.White)
+                Color? color = state.AlbumImageUrl != null
+                    ? await spotify_lyrics_overlay.AlbumColor.FromImageUrlAsync(state.AlbumImageUrl)
                     : null;
-
-                if (color == null && state.AlbumImageUrl != null)
-                {
-                    color = await spotify_lyrics_overlay.AlbumColor.FromImageUrlAsync(state.AlbumImageUrl);
-                    if (color != null && result != null)
-                    {
-                        result.AlbumColorHex = ColorHelper.ToHex(color.Value);
-                        LrcLibLyricsProvider.Instance.UpdateCache(
-                            state.TrackName ?? "", state.TrackArtists ?? "", state.TrackLength, result);
-                    }
-                }
 
                 // ignore the result if the song changed while loading
                 if (state.TrackId == lyricsTrackId)
@@ -317,7 +304,7 @@ namespace spotify_lyrics_overlay
             }
             finally
             {
-                albumColorLoading = false;
+                if (albumColorLoadingTrackId == state.TrackId) albumColorLoadingTrackId = null;
             }
         }
 

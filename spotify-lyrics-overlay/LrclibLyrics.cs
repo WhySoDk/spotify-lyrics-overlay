@@ -11,8 +11,6 @@ namespace spotify_lyrics_overlay
         public string? PlainLyrics { get; set; }
         // Lyricsfile YAML, has line end times and word timings that the LRC lyrics don't
         public string? Lyricsfile { get; set; }
-        // lyrics color picked from the album cover, cached together with the lyrics
-        public string? AlbumColorHex { get; set; }
         public bool Instrumental { get; set; }
         // disk cache only: when lrclib was asked, results without synced lyrics are asked again after a while
         public DateTime? CheckedAt { get; set; }
@@ -122,9 +120,8 @@ namespace spotify_lyrics_overlay
                     }
                     else
                     {
-                        // keep the plain lyrics if they're gone now, and the album color that was already picked
+                        // keep the plain lyrics if they're gone now
                         if (result == null && cached?.NotFound == false) result = cached;
-                        if (result != null && result.AlbumColorHex == null) result.AlbumColorHex = cached?.AlbumColorHex;
 
                         var entry = result ?? new LyricsResult { NotFound = true };
                         entry.CheckedAt = IsComplete(entry) ? null : DateTime.UtcNow;
@@ -289,12 +286,6 @@ namespace spotify_lyrics_overlay
             return stripped.Length > 0 ? stripped : trackName.Trim();
         }
 
-        //write back a result from GetLyricsAsync after changing it, e.g. adding the album color
-        public void UpdateCache(string trackName, string artistName, int durationSeconds, LyricsResult result)
-        {
-            WriteDiskCache(GetKey(trackName, artistName, durationSeconds), result);
-        }
-
         private static readonly Regex RecordLinkRegex = new(@"^(?:(?:https?://)?(?:www\.)?lrclib\.net/(?:tracks|api/get)/)?(\d+)/?(?:[?#].*)?$", RegexOptions.IgnoreCase);
 
         //use the lrclib record of a link (or just its id) as the lyrics of the song,
@@ -350,8 +341,6 @@ namespace spotify_lyrics_overlay
             result.Manual = true;
 
             string key = GetKey(trackName, artistName, durationSeconds);
-            // the album color doesn't depend on the lyrics
-            result.AlbumColorHex = ReadDiskCache(key)?.AlbumColorHex;
             WriteDiskCache(key, result);
             lock (memoryCache)
             {
