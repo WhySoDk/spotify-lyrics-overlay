@@ -31,6 +31,9 @@ namespace spotify_lyrics_overlay
         private bool snapBox = true;
         private readonly System.Diagnostics.Stopwatch boxClock = new();
 
+        // karaoke, opacity of the part of the line that is not sung yet
+        private const float KaraokeUnfilledOpacity = 0.4f;
+
         // used to measure text before the bitmap size is known
         private readonly Graphics measureGraphics = createMeasureGraphics();
 
@@ -304,15 +307,38 @@ namespace spotify_lyrics_overlay
             using var scaledFont = item.Scale == 1f ? null : new Font(font.FontFamily, font.Size * item.Scale, font.Style);
             var itemFont = scaledFont ?? font;
 
+            if (item.Fill is not float fill)
+            {
+                drawText(g, item, itemFont, textColor, dropShadow, item.Opacity);
+                return;
+            }
+
+            // karaoke, the part right of the split is dimmed, the part left of it in full color
+            float split = item.X + item.Size.Width * fill;
+            float top = item.Y - item.Size.Height;
+            float bottom = item.Y + item.Size.Height * 2;
+            var state = g.Save();
+
+            g.SetClip(RectangleF.FromLTRB(split, top, item.X + item.Size.Width + item.Size.Height, bottom));
+            drawText(g, item, itemFont, textColor, dropShadow, item.Opacity * KaraokeUnfilledOpacity);
+
+            g.SetClip(RectangleF.FromLTRB(item.X - item.Size.Height, top, split, bottom));
+            drawText(g, item, itemFont, textColor, dropShadow, item.Opacity);
+
+            g.Restore(state);
+        }
+
+        private static void drawText(Graphics g, TextItem item, Font font, Color textColor, bool dropShadow, float opacity)
+        {
             // Using 200 Alpha for shadow
             if (dropShadow)
             {
-                using var shadowBrush = new SolidBrush(Color.FromArgb((int)(200 * item.Opacity), 1, 1, 1));
-                g.DrawString(item.Text, itemFont, shadowBrush, new PointF(item.X + 2, item.Y + 2));
+                using var shadowBrush = new SolidBrush(Color.FromArgb((int)(200 * opacity), 1, 1, 1));
+                g.DrawString(item.Text, font, shadowBrush, new PointF(item.X + 2, item.Y + 2));
             }
 
-            using var brush = new SolidBrush(Color.FromArgb((int)(textColor.A * item.Opacity), textColor));
-            g.DrawString(item.Text, itemFont, brush, new PointF(item.X, item.Y));
+            using var brush = new SolidBrush(Color.FromArgb((int)(textColor.A * opacity), textColor));
+            g.DrawString(item.Text, font, brush, new PointF(item.X, item.Y));
         }
 
         //Helper to interface with Windows API

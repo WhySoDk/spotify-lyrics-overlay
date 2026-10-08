@@ -7,6 +7,9 @@ namespace spotify_lyrics_overlay.Transitions
         public string Text = "";
         public float Scale = 1f;
         public float Opacity = 1f;
+        //karaoke, share of the line from the left drawn in full color and the rest dimmed,
+        //null draws the whole line normally
+        public float? Fill;
         public float Y;
         public float X;
         public SizeF Size;

@@ -7,6 +7,9 @@ namespace spotify_lyrics_overlay.Transitions
         private const float NextLineScale = 0.75f;
         private const float NextLineOpacity = 0.5f;
 
+        //karaoke fill of the current line, null for none
+        protected virtual float? CurrentLineFill => null;
+
         protected override List<TextItem> LayoutLines(Graphics g, Font font, float centerY, float p)
         {
             var items = new List<TextItem>();
@@ -27,8 +30,10 @@ namespace spotify_lyrics_overlay.Transitions
             // current line, coming up from the second row
             if (LineAt(index) is string current)
             {
-                items.Add(MakeItem(g, font, current,
-                    Lerp(NextLineScale, 1f, p), Lerp(NextLineOpacity, 1f, p), Lerp(row2Y, row1Y, p)));
+                var item = MakeItem(g, font, current,
+                    Lerp(NextLineScale, 1f, p), Lerp(NextLineOpacity, 1f, p), Lerp(row2Y, row1Y, p));
+                item.Fill = CurrentLineFill;
+                items.Add(item);
             }
 
             // upcoming line fading in on the second row
