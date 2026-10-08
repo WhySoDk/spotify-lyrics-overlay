@@ -39,6 +39,14 @@ namespace spotify_lyrics_overlay
         // karaoke, opacity of the part of the line that is not sung yet
         private const float KaraokeUnfilledOpacity = 0.4f;
 
+        // debug info box above the lyrics
+        private string? debugText;
+        private static readonly Font DebugFont = new("Segoe UI", 10f);
+        private static readonly Color DebugBoxColor = Color.FromArgb(150, 60, 60, 60);
+        private static readonly Color DebugTextColor = Color.FromArgb(230, 230, 230, 230);
+        private const float DebugPadding = 4f;
+        private const float DebugGap = 6f;
+
         // used to measure text before the bitmap size is known
         private readonly Graphics measureGraphics = createMeasureGraphics();
 
@@ -168,7 +176,11 @@ namespace spotify_lyrics_overlay
             bool colorChanged = color != albumColor;
             albumColor = color;
 
-            if (needsRender || modeChanged || colorChanged || boxAnimating)
+            string? debug = config.debugEnabled ? DebugStatus.Current(config.debugShowCacheHits) : null;
+            bool debugChanged = debug != debugText;
+            debugText = debug;
+
+            if (needsRender || modeChanged || colorChanged || debugChanged || boxAnimating)
             {
                 RenderLayeredWindow();
             }
@@ -222,10 +234,25 @@ namespace spotify_lyrics_overlay
             }
             snapBox = false;
 
+            // debug info sits right above the lyrics, or above the center line when there are none
+            RectangleF debugBox = RectangleF.Empty;
+            if (debugText != null)
+            {
+                var size = measureGraphics.MeasureString(debugText, DebugFont);
+                float bottom = (hasText ? content.Top : centerY) - DebugGap;
+                debugBox = new RectangleF(
+                    screenBounds.Width / 2f + config.xOffset - size.Width / 2f - DebugPadding,
+                    bottom - size.Height - DebugPadding * 2,
+                    size.Width + DebugPadding * 2,
+                    size.Height + DebugPadding * 2);
+                content = content.IsEmpty ? debugBox : RectangleF.Union(content, debugBox);
+            }
+            bool hasContent = hasText || !debugBox.IsEmpty;
+
             // 2. Only the area with content becomes the window, clamped to the screen
             var area = Rectangle.Intersect(Rectangle.Ceiling(content),
                 new Rectangle(0, 0, screenBounds.Width, screenBounds.Height));
-            if (!hasText || area.Width <= 0 || area.Height <= 0)
+            if (!hasContent || area.Width <= 0 || area.Height <= 0)
             {
                 area = new Rectangle(screenBounds.Width / 2, screenBounds.Height / 2, 1, 1);
             }
@@ -242,7 +269,7 @@ namespace spotify_lyrics_overlay
                     // Clear with 100% transparent background
                     g.Clear(Color.Transparent);
 
-                    if (hasText)
+                    if (hasContent)
                     {
                         g.TranslateTransform(-area.X, -area.Y);
 
@@ -257,6 +284,14 @@ namespace spotify_lyrics_overlay
                         foreach (var item in items)
                         {
                             drawTextItem(g, item, font, textColor, config.dropShadow);
+                        }
+
+                        if (!debugBox.IsEmpty)
+                        {
+                            using var debugBoxBrush = new SolidBrush(DebugBoxColor);
+                            using var debugTextBrush = new SolidBrush(DebugTextColor);
+                            g.FillRectangle(debugBoxBrush, debugBox);
+                            g.DrawString(debugText, DebugFont, debugTextBrush, debugBox.X + DebugPadding, debugBox.Y + DebugPadding);
                         }
                     }
                 }

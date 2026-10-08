@@ -22,13 +22,17 @@ namespace spotify_lyrics_overlay
         public int backgroundOpacity { get; set; } = 70;
         public int backgroundSpread { get; set; } = 12;
         public String transitionMode { get; set; } = Transitions.LyricsTransitions.DefaultId;
+        // small box above the lyrics telling which lookup step is running
+        public Boolean debugEnabled { get; set; }
+        public Boolean debugShowCacheHits { get; set; } = true;
 
         public override string ToString()
         {
             return $"AppConfig(newlyGenerated: {newlyGenerated}, fontName: {fontName}, secondaryFontName: {secondaryFontName}, fontSize: {fontSize}, " +
                    $"bold: {bold}, italic: {italic}, dropShadow: {dropShadow}, fontColorHex: {fontColorHex}, albumColor: {albumColor}, " +
                    $"screenName: {screenName}, xOffset: {xOffset}, yOffset: {yOffset}, apiKey: {apiKey}, rememberApiKey: {rememberApiKey}, " +
-                   $"backgroundEnabled: {backgroundEnabled}, backgroundColorHex: {backgroundColorHex}, backgroundOpacity: {backgroundOpacity}, backgroundSpread: {backgroundSpread}, transitionMode: {transitionMode})";
+                   $"backgroundEnabled: {backgroundEnabled}, backgroundColorHex: {backgroundColorHex}, backgroundOpacity: {backgroundOpacity}, backgroundSpread: {backgroundSpread}, transitionMode: {transitionMode}, " +
+                   $"debugEnabled: {debugEnabled}, debugShowCacheHits: {debugShowCacheHits})";
         }
 
     }

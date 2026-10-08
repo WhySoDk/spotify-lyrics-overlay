@@ -59,6 +59,7 @@ namespace spotify_lyrics_overlay
                 backgroundOpacitySlider.Value = 70;
                 backgroundSpreadBox.Value = 12;
                 transitionComboBox.SelectedIndex = LyricsTransitions.IndexOf(LyricsTransitions.DefaultId);
+                debugCacheHitsCheckBox.IsChecked = true;
             }
             else
             {
@@ -86,6 +87,9 @@ namespace spotify_lyrics_overlay
                 backgroundSpreadBox.Value = config.backgroundSpread;
 
                 transitionComboBox.SelectedIndex = LyricsTransitions.IndexOf(config.transitionMode);
+
+                debugCheckBox.IsChecked = config.debugEnabled;
+                debugCacheHitsCheckBox.IsChecked = config.debugShowCacheHits;
             }
 
             showRunState();
@@ -248,6 +252,9 @@ namespace spotify_lyrics_overlay
             {
                 config.transitionMode = LyricsTransitions.All[transitionComboBox.SelectedIndex].Id;
             }
+
+            config.debugEnabled = debugCheckBox.IsChecked == true;
+            config.debugShowCacheHits = debugCacheHitsCheckBox.IsChecked == true;
         }
 
         private void runButton_Click(object sender, RoutedEventArgs e)

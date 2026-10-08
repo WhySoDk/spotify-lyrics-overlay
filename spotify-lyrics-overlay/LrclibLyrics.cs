@@ -66,7 +66,10 @@ namespace spotify_lyrics_overlay
             lock (memoryCache)
             {
                 if (memoryCache.TryGetValue(key, out var cached))
+                {
+                    DebugStatus.Show("Cache hit (memory)", cacheHit: true);
                     return Task.FromResult(new LyricsLookup(cached, false));
+                }
 
                 if (pendingRequests.TryGetValue(key, out var pending))
                     return pending;
@@ -88,7 +91,14 @@ namespace spotify_lyrics_overlay
 
             try
             {
-                if (cached == null || IsExpired(cached))
+                if (cached != null && !IsExpired(cached))
+                {
+                    if (IsComplete(cached))
+                        DebugStatus.Show("Cache hit", cacheHit: true);
+                    else
+                        DebugStatus.Show($"Cache: {Describe(result)}, expires in {DebugStatus.FormatDuration(cached.CheckedAt!.Value + IncompleteCacheDuration - DateTime.UtcNow)}");
+                }
+                else
                 {
                     (found, result) = await FetchLyricsAsync(trackName, artistName, primaryArtist, durationSeconds);
 
@@ -99,6 +109,11 @@ namespace spotify_lyrics_overlay
                         {
                             found = true;
                             result = cached.NotFound ? null : cached;
+                            DebugStatus.Show($"Lookup failed, using the expired cache: {Describe(result)}");
+                        }
+                        else
+                        {
+                            DebugStatus.Show($"Lookup failed, trying again in {FailedRetryDelay.TotalSeconds:0}s");
                         }
                     }
                     else
@@ -110,6 +125,9 @@ namespace spotify_lyrics_overlay
                         var entry = result ?? new LyricsResult { NotFound = true };
                         entry.CheckedAt = IsComplete(entry) ? null : DateTime.UtcNow;
                         WriteDiskCache(key, entry);
+                        DebugStatus.Show(IsComplete(entry)
+                            ? $"Found {Describe(result)}"
+                            : $"Found {Describe(result)}, cached for {DebugStatus.FormatDuration(IncompleteCacheDuration)}");
                     }
                 }
 
@@ -141,11 +159,13 @@ namespace spotify_lyrics_overlay
                 // so a failed step doesn't stop the next one, it only matters if nothing is found
                 bool failed = false;
                 LyricsResult? best = null;
+                int steps = artists.Count + 1;
 
-                foreach (string artist in artists)
+                for (int i = 0; i < artists.Count; i++)
                 {
+                    string artist = artists[i];
                     string url = $"https://lrclib.net/api/get?track_name={Uri.EscapeDataString(trackName)}&artist_name={Uri.EscapeDataString(artist)}&duration={durationSeconds}";
-                    var (ok, json) = await GetJsonAsync(url);
+                    var (ok, json) = await GetJsonAsync(url, $"{i + 1}/{steps} {(i == 0 ? "Simple query" : "Main artist query")}");
                     failed |= !ok;
                     if (json != null)
                     {
@@ -162,7 +182,7 @@ namespace spotify_lyrics_overlay
                 // search by the base title and pick a record with the same duration
                 string title = BaseTitle(trackName);
                 string searchUrl = $"https://lrclib.net/api/search?track_name={Uri.EscapeDataString(title)}&artist_name={Uri.EscapeDataString(artists[^1])}";
-                var (searchOk, searchJson) = await GetJsonAsync(searchUrl);
+                var (searchOk, searchJson) = await GetJsonAsync(searchUrl, $"{steps}/{steps} Search by title");
                 failed |= !searchOk;
 
                 var match = searchJson == null ? null : JsonDocument.Parse(searchJson).RootElement.EnumerateArray()
@@ -191,11 +211,13 @@ namespace spotify_lyrics_overlay
             }
         }
 
-        // ok = false when the request failed, json = null when lrclib has no match (404)
-        private async Task<(bool ok, string? json)> GetJsonAsync(string url)
+        // ok = false when the request failed, json = null when lrclib has no match (404),
+        // step names the request in the debug info
+        private async Task<(bool ok, string? json)> GetJsonAsync(string url, string step)
         {
             for (int attempt = 1; ; attempt++)
             {
+                DebugStatus.Show(attempt == 1 ? step : $"{step} (lrclib busy, try {attempt}/{MaxAttempts})");
                 using var response = await httpClient.GetAsync(url);
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     return (true, null);
@@ -210,6 +232,16 @@ namespace spotify_lyrics_overlay
                 var retryAfter = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(1);
                 await Task.Delay(retryAfter < MaxRetryAfter ? retryAfter : MaxRetryAfter);
             }
+        }
+
+        //what a lookup found, for the debug info
+        private static string Describe(LyricsResult? result)
+        {
+            return result == null ? "not found"
+                : HasSyncedLyrics(result) ? "synced lyrics"
+                : result.Instrumental ? "instrumental"
+                : !string.IsNullOrWhiteSpace(result.PlainLyrics) ? "plain lyrics only"
+                : "no lyrics";
         }
 
         private static bool HasSyncedLyrics(LyricsResult result)

@@ -160,7 +160,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource Card}" Margin="0">
+            <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource CardTitle}" Text="Position" />
 
@@ -185,6 +185,16 @@
                     </Grid>
                     <TextBlock Style="{StaticResource FieldLabel}" Margin="0,8,0,0" FontSize="12"
                                Text="0, 0 is the center of the screen" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Lyrics" />
+                    <CheckBox x:Name="debugCheckBox" Content="Show debug info" Click="setting_Changed"
+                              ToolTip="Shows which lyrics lookup step is running above the lyrics" />
+                    <CheckBox x:Name="debugCacheHitsCheckBox" Content="Also show cache hits" Margin="28,8,0,0" Click="setting_Changed"
+                              IsEnabled="{Binding IsChecked, ElementName=debugCheckBox}" />
                 </StackPanel>
             </Border>
         </StackPanel>
