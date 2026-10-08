@@ -8,7 +8,7 @@ namespace spotify_lyrics_overlay
         Boolean isStarted = false;
         private bool isInitializing = true;
         private LyricsOverlay overlay;
-        private Color backgroundColor = Color.FromArgb(180, 0, 0, 0);
+        private Color backgroundColor = Color.Black;
 
         public Form1()
         {
@@ -64,7 +64,8 @@ namespace spotify_lyrics_overlay
 
                 //background box
                 backgroundCheckBox.Checked = false;
-                setBackgroundColor(Color.FromArgb(180, 0, 0, 0));
+                setBackgroundColor(Color.Black);
+                backgroundOpacity.Value = 70;
                 backgroundSpread.Value = 12;
             }
             else
@@ -104,7 +105,8 @@ namespace spotify_lyrics_overlay
 
                 //background box
                 backgroundCheckBox.Checked = config.backgroundEnabled;
-                setBackgroundColor(ColorHelper.FromRgbaHex(config.backgroundColorHex, backgroundColor));
+                setBackgroundColor(ColorHelper.FromHex(config.backgroundColorHex, backgroundColor));
+                backgroundOpacity.Value = Math.Clamp(config.backgroundOpacity, backgroundOpacity.Minimum, backgroundOpacity.Maximum);
                 backgroundSpread.Value = Math.Clamp(config.backgroundSpread, backgroundSpread.Minimum, backgroundSpread.Maximum);
             }
 
@@ -287,29 +289,33 @@ namespace spotify_lyrics_overlay
         private void setBackgroundColor(Color color)
         {
             backgroundColor = color;
-            // the preview box can't show transparency, show the opaque color
-            backgroundColorPictureBox.BackColor = Color.FromArgb(255, color);
-            backgroundColorHexBox.Text = ColorHelper.ToRgbaHex(color);
+            backgroundColorPictureBox.BackColor = color;
+            backgroundColorHexBox.Text = ColorHelper.ToHex(color);
             updateConfig();
         }
 
         private void backgroundColorHexBox_stopFocus(object sender, EventArgs e)
         {
-            setBackgroundColor(ColorHelper.FromRgbaHex(backgroundColorHexBox.Text, backgroundColor));
+            setBackgroundColor(ColorHelper.FromHex(backgroundColorHexBox.Text, backgroundColor));
         }
 
         private void backgroundColorPickerButton_Click(object sender, EventArgs e)
         {
-            colorDialog.Color = Color.FromArgb(255, backgroundColor);
+            colorDialog.Color = backgroundColor;
             if (colorDialog.ShowDialog() == DialogResult.OK)
             {
-                // keep the current alpha, the dialog only picks RGB
-                setBackgroundColor(Color.FromArgb(backgroundColor.A, colorDialog.Color));
+                setBackgroundColor(colorDialog.Color);
             }
         }
 
         private void backgroundCheckBox_CheckedChanged(object sender, EventArgs e)
         {
+            updateConfig();
+        }
+
+        private void backgroundOpacity_ValueChanged(object sender, EventArgs e)
+        {
+            backgroundOpacityValue.Text = $"{backgroundOpacity.Value}%";
             updateConfig();
         }
 
@@ -393,7 +399,8 @@ namespace spotify_lyrics_overlay
             config.apiKey = apiRememberCheck.Checked ? apiKeyBox.Text : "";
 
             config.backgroundEnabled = backgroundCheckBox.Checked;
-            config.backgroundColorHex = ColorHelper.ToRgbaHex(backgroundColor);
+            config.backgroundColorHex = ColorHelper.ToHex(backgroundColor);
+            config.backgroundOpacity = backgroundOpacity.Value;
             config.backgroundSpread = (int)backgroundSpread.Value;
         }
 

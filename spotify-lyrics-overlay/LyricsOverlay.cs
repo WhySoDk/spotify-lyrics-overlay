@@ -165,7 +165,7 @@ namespace spotify_lyrics_overlay
                     {
                         float maxWidth = lineSizes.Max(size => size.Width);
                         float spread = config.backgroundSpread;
-                        var boxColor = ColorHelper.FromRgbaHex(config.backgroundColorHex, Color.FromArgb(180, 0, 0, 0));
+                        var boxColor = ColorHelper.WithOpacity(ColorHelper.FromHex(config.backgroundColorHex, Color.Black), config.backgroundOpacity);
 
                         using var boxBrush = new SolidBrush(boxColor);
                         g.FillRectangle(boxBrush,

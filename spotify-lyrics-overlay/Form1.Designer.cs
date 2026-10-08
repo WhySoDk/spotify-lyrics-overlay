@@ -57,11 +57,15 @@
             backgroundColorPickerButton = new Button();
             backgroundSpreadText = new Label();
             backgroundSpread = new NumericUpDown();
+            backgroundOpacityText = new Label();
+            backgroundOpacity = new TrackBar();
+            backgroundOpacityValue = new Label();
             ((System.ComponentModel.ISupportInitialize)xOffset).BeginInit();
             ((System.ComponentModel.ISupportInitialize)yOffset).BeginInit();
             ((System.ComponentModel.ISupportInitialize)colorPictureBox).BeginInit();
             ((System.ComponentModel.ISupportInitialize)backgroundColorPictureBox).BeginInit();
             ((System.ComponentModel.ISupportInitialize)backgroundSpread).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)backgroundOpacity).BeginInit();
             SuspendLayout();
             // 
             // fontText
@@ -201,7 +205,7 @@
             apiKeyText.AutoSize = true;
             apiKeyText.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
             apiKeyText.ForeColor = SystemColors.ControlLight;
-            apiKeyText.Location = new Point(8, 347);
+            apiKeyText.Location = new Point(8, 387);
             apiKeyText.Name = "apiKeyText";
             apiKeyText.Size = new Size(133, 21);
             apiKeyText.TabIndex = 13;
@@ -212,7 +216,7 @@
             // 
             apiKeyBox.Font = new Font("Segoe UI", 12F);
             apiKeyBox.ForeColor = SystemColors.ControlText;
-            apiKeyBox.Location = new Point(12, 369);
+            apiKeyBox.Location = new Point(12, 409);
             apiKeyBox.Name = "apiKeyBox";
             apiKeyBox.PasswordChar = '•';
             apiKeyBox.Size = new Size(295, 29);
@@ -225,7 +229,7 @@
             apiRememberCheck.AutoSize = true;
             apiRememberCheck.Font = new Font("Segoe UI", 12F);
             apiRememberCheck.ForeColor = SystemColors.ControlLight;
-            apiRememberCheck.Location = new Point(7, 396);
+            apiRememberCheck.Location = new Point(7, 436);
             apiRememberCheck.Name = "apiRememberCheck";
             apiRememberCheck.RightToLeft = RightToLeft.Yes;
             apiRememberCheck.Size = new Size(167, 25);
@@ -266,7 +270,7 @@
             runButton.FlatStyle = FlatStyle.Popup;
             runButton.Font = new Font("Segoe UI", 20F, FontStyle.Bold, GraphicsUnit.Point, 0);
             runButton.ForeColor = SystemColors.ControlLight;
-            runButton.Location = new Point(12, 432);
+            runButton.Location = new Point(12, 472);
             runButton.Name = "runButton";
             runButton.Size = new Size(295, 69);
             runButton.TabIndex = 18;
@@ -359,7 +363,7 @@
             backgroundColorHexBox.ForeColor = SystemColors.ControlText;
             backgroundColorHexBox.Location = new Point(47, 288);
             backgroundColorHexBox.Name = "backgroundColorHexBox";
-            backgroundColorHexBox.PlaceholderText = "#RRGGBBAA";
+            backgroundColorHexBox.PlaceholderText = "#RRGGBB";
             backgroundColorHexBox.Size = new Size(120, 29);
             backgroundColorHexBox.TabIndex = 26;
             backgroundColorHexBox.Leave += backgroundColorHexBox_stopFocus;
@@ -396,13 +400,51 @@
             backgroundSpread.Size = new Size(95, 29);
             backgroundSpread.TabIndex = 29;
             backgroundSpread.ValueChanged += backgroundSpread_ValueChanged;
+            //
+            // backgroundOpacityText
+            //
+            backgroundOpacityText.AutoSize = true;
+            backgroundOpacityText.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            backgroundOpacityText.ForeColor = SystemColors.ControlLight;
+            backgroundOpacityText.Location = new Point(9, 326);
+            backgroundOpacityText.Name = "backgroundOpacityText";
+            backgroundOpacityText.Size = new Size(67, 21);
+            backgroundOpacityText.TabIndex = 30;
+            backgroundOpacityText.Text = "Opacity";
+            backgroundOpacityText.TextAlign = ContentAlignment.MiddleLeft;
+            //
+            // backgroundOpacity
+            //
+            backgroundOpacity.AutoSize = false;
+            backgroundOpacity.Location = new Point(82, 324);
+            backgroundOpacity.Maximum = 100;
+            backgroundOpacity.Name = "backgroundOpacity";
+            backgroundOpacity.Size = new Size(170, 30);
+            backgroundOpacity.TabIndex = 31;
+            backgroundOpacity.TickStyle = TickStyle.None;
+            backgroundOpacity.Value = 70;
+            backgroundOpacity.ValueChanged += backgroundOpacity_ValueChanged;
+            //
+            // backgroundOpacityValue
+            //
+            backgroundOpacityValue.Font = new Font("Segoe UI", 12F);
+            backgroundOpacityValue.ForeColor = SystemColors.ControlLight;
+            backgroundOpacityValue.Location = new Point(255, 326);
+            backgroundOpacityValue.Name = "backgroundOpacityValue";
+            backgroundOpacityValue.Size = new Size(52, 21);
+            backgroundOpacityValue.TabIndex = 32;
+            backgroundOpacityValue.Text = "70%";
+            backgroundOpacityValue.TextAlign = ContentAlignment.MiddleRight;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(27, 43, 52);
-            ClientSize = new Size(319, 515);
+            ClientSize = new Size(319, 555);
+            Controls.Add(backgroundOpacityValue);
+            Controls.Add(backgroundOpacity);
+            Controls.Add(backgroundOpacityText);
             Controls.Add(backgroundSpread);
             Controls.Add(backgroundSpreadText);
             Controls.Add(backgroundColorPickerButton);
@@ -432,8 +474,8 @@
             Controls.Add(fontText);
             Controls.Add(apiRememberCheck);
             MaximizeBox = false;
-            MaximumSize = new Size(335, 554);
-            MinimumSize = new Size(335, 554);
+            MaximumSize = new Size(335, 594);
+            MinimumSize = new Size(335, 594);
             Name = "Form1";
             Text = "Spotify-Lyrics-Overlay";
             FormClosing += Form1_FormClosing;
@@ -443,6 +485,7 @@
             ((System.ComponentModel.ISupportInitialize)colorPictureBox).EndInit();
             ((System.ComponentModel.ISupportInitialize)backgroundColorPictureBox).EndInit();
             ((System.ComponentModel.ISupportInitialize)backgroundSpread).EndInit();
+            ((System.ComponentModel.ISupportInitialize)backgroundOpacity).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -478,5 +521,8 @@
         private Button backgroundColorPickerButton;
         private Label backgroundSpreadText;
         private NumericUpDown backgroundSpread;
+        private Label backgroundOpacityText;
+        private TrackBar backgroundOpacity;
+        private Label backgroundOpacityValue;
     }
 }

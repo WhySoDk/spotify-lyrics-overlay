@@ -38,7 +38,8 @@ namespace spotify_lyrics_overlay
                     apiKey = "",
                     rememberApiKey = false,
                     backgroundEnabled = false,
-                    backgroundColorHex = "#000000B4",
+                    backgroundColorHex = "#000000",
+                    backgroundOpacity = 70,
                     backgroundSpread = 12
                 };
 
