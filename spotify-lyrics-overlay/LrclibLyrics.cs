@@ -10,7 +10,11 @@ namespace spotify_lyrics_overlay
         public string? PlainLyrics { get; set; }
         // lyrics color picked from the album cover, cached together with the lyrics
         public string? AlbumColorHex { get; set; }
+        public bool Instrumental { get; set; }
     }
+
+    //Result is null when lrclib has no lyrics for the song, Failed when the request didn't go through
+    public record LyricsLookup(LyricsResult? Result, bool Failed);
 
     public class LrcLibLyricsProvider
     {
@@ -24,7 +28,7 @@ namespace spotify_lyrics_overlay
 
         // null value = lyrics not found on lrclib
         private readonly Dictionary<string, LyricsResult?> memoryCache = new();
-        private readonly Dictionary<string, Task<LyricsResult?>> pendingRequests = new();
+        private readonly Dictionary<string, Task<LyricsLookup>> pendingRequests = new();
         private readonly Dictionary<string, DateTime> failedRequests = new();
 
         private LrcLibLyricsProvider()
@@ -41,20 +45,20 @@ namespace spotify_lyrics_overlay
             return $"{trackName}\n{artistName}\n{durationSeconds}".ToLowerInvariant();
         }
 
-        public Task<LyricsResult?> GetLyricsAsync(string trackName, string artistName, int durationSeconds)
+        public Task<LyricsLookup> GetLyricsAsync(string trackName, string artistName, int durationSeconds)
         {
             string key = GetKey(trackName, artistName, durationSeconds);
 
             lock (memoryCache)
             {
                 if (memoryCache.TryGetValue(key, out var cached))
-                    return Task.FromResult(cached);
+                    return Task.FromResult(new LyricsLookup(cached, false));
 
                 if (pendingRequests.TryGetValue(key, out var pending))
                     return pending;
 
                 if (failedRequests.TryGetValue(key, out var failedAt) && DateTime.UtcNow - failedAt < FailedRetryDelay)
-                    return Task.FromResult<LyricsResult?>(null);
+                    return Task.FromResult(new LyricsLookup(null, true));
 
                 var task = LoadLyricsAsync(key, trackName, artistName, durationSeconds);
                 pendingRequests[key] = task;
@@ -62,7 +66,7 @@ namespace spotify_lyrics_overlay
             }
         }
 
-        private async Task<LyricsResult?> LoadLyricsAsync(string key, string trackName, string artistName, int durationSeconds)
+        private async Task<LyricsLookup> LoadLyricsAsync(string key, string trackName, string artistName, int durationSeconds)
         {
             bool found = true;
             LyricsResult? result = ReadDiskCache(key);
@@ -80,7 +84,7 @@ namespace spotify_lyrics_overlay
                     if (found) memoryCache[key] = result;
                     else failedRequests[key] = DateTime.UtcNow;
                 }
-                return result;
+                return new LyricsLookup(result, !found);
             }
             finally
             {
@@ -110,7 +114,8 @@ namespace spotify_lyrics_overlay
                 var result = new LyricsResult
                 {
                     SyncLyrics = doc.TryGetProperty("syncedLyrics", out var sync) ? sync.GetString() : null,
-                    PlainLyrics = doc.TryGetProperty("plainLyrics", out var plain) ? plain.GetString() : null
+                    PlainLyrics = doc.TryGetProperty("plainLyrics", out var plain) ? plain.GetString() : null,
+                    Instrumental = doc.TryGetProperty("instrumental", out var instrumental) && instrumental.ValueKind == JsonValueKind.True
                 };
 
                 System.Diagnostics.Debug.WriteLine($"Fetched lyrics for {trackName} by {artistName}: {result.SyncLyrics ?? "No synced lyrics"}");

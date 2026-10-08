@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using SpotifyAPI.Web;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -46,6 +46,7 @@ namespace spotify_lyrics_overlay
         private static readonly TimeSpan MinPollInterval = TimeSpan.FromMilliseconds(500);
         private static readonly TimeSpan MaxBackoff = TimeSpan.FromSeconds(30);
         private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan StatusDuration = TimeSpan.FromSeconds(5);
 
         private SpotifyClient? spotify;
 
@@ -53,11 +54,17 @@ namespace spotify_lyrics_overlay
         // the position in between polls is estimated locally
         private PlaybackState? playbackState;
         private bool hasPolled;
+        private bool spotifyFailed;
         private readonly Stopwatch sincePoll = new();
 
         private string? lyricsTrackId;
         private bool lyricsLoaded;
         private bool lyricsLoading;
+        private bool lyricsFailed;
+
+        // status messages are shown for a few seconds, once per song
+        private string? statusKey;
+        private readonly Stopwatch statusClock = new();
         private LyricsResult? lyrics;
         private string? parsedLyricsSource;
         private List<LyricLine> parsedLyrics = new();
@@ -84,6 +91,7 @@ namespace spotify_lyrics_overlay
                 {
                     // force a fresh poll when the overlay is started again
                     hasPolled = false;
+                    statusKey = null;
                     delay = InactiveCheckInterval;
                 }
                 else
@@ -91,6 +99,7 @@ namespace spotify_lyrics_overlay
                     try
                     {
                         await PollPlaybackAsync(cancellationToken);
+                        spotifyFailed = false;
                         backoff = TimeSpan.Zero;
                         delay = GetNextPollDelay();
                     }
@@ -106,6 +115,7 @@ namespace spotify_lyrics_overlay
                     catch (Exception ex)
                     {
                         // timeouts, network errors, failed login: back off exponentially
+                        spotifyFailed = true;
                         backoff = backoff == TimeSpan.Zero
                             ? TimeSpan.FromSeconds(2)
                             : TimeSpan.FromTicks(Math.Min(backoff.Ticks * 2, MaxBackoff.Ticks));
@@ -187,6 +197,7 @@ namespace spotify_lyrics_overlay
             {
                 lyricsTrackId = state.TrackId;
                 lyricsLoaded = false;
+                lyricsFailed = false;
                 lyrics = null;
                 AlbumColor = null;
                 albumColorTrackId = null;
@@ -204,15 +215,20 @@ namespace spotify_lyrics_overlay
             lyricsLoading = true;
             try
             {
-                var result = await LrcLibLyricsProvider.Instance.GetLyricsAsync(
+                var lookup = await LrcLibLyricsProvider.Instance.GetLyricsAsync(
                     state.TrackName ?? "", state.TrackArtists ?? "", state.TrackLength
                 );
 
-                // ignore the result if the song changed while loading
+                // ignore the result if the song changed while loading,
+                // a failed request is tried again on a later poll
                 if (state.TrackId == lyricsTrackId)
                 {
-                    lyrics = result;
-                    lyricsLoaded = true;
+                    lyricsFailed = lookup.Failed;
+                    if (!lookup.Failed)
+                    {
+                        lyrics = lookup.Result;
+                        lyricsLoaded = true;
+                    }
                 }
             }
             finally
@@ -282,7 +298,7 @@ namespace spotify_lyrics_overlay
         {
             if (!hasPolled)
             {
-                return new LyricsView { Message = "" };
+                return new LyricsView { Message = spotifyFailed ? briefly("spotify", "(Can't connect to Spotify)") : "" };
             }
 
             var playBackState = playbackState;
@@ -298,33 +314,31 @@ namespace spotify_lyrics_overlay
             }
 
             double currentTime = GetEstimatedTime(playBackState);
+            string track = playBackState.TrackId ?? "";
 
             if (!lyricsLoaded)
             {
-                return new LyricsView { Message = "" };
+                return new LyricsView { Message = lyricsFailed ? briefly(track + ":failed", "(Couldn't load lyrics)") : "" };
             }
 
             if (lyrics == null)
             {
-                if (currentTime < 5)
-                {
-                    return new LyricsView { Message = "No lyrics found" };
-                }
-                else
-                {
-                    return new LyricsView { Message = "" };
-                }
-
-            }
-            if (string.IsNullOrEmpty(lyrics.SyncLyrics))
-            {
-                return new LyricsView { Message = "" };
+                return new LyricsView { Message = briefly(track + ":none", "No lyrics found") };
             }
 
-            if (!ReferenceEquals(parsedLyricsSource, lyrics.SyncLyrics))
+            if (!string.IsNullOrEmpty(lyrics.SyncLyrics) && !ReferenceEquals(parsedLyricsSource, lyrics.SyncLyrics))
             {
                 parsedLyrics = ParseLyrics(lyrics.SyncLyrics);
                 parsedLyricsSource = lyrics.SyncLyrics;
+            }
+
+            if (string.IsNullOrEmpty(lyrics.SyncLyrics) || parsedLyrics.Count == 0)
+            {
+                bool hasText = !string.IsNullOrWhiteSpace(lyrics.PlainLyrics) || !string.IsNullOrWhiteSpace(lyrics.SyncLyrics);
+                string message = hasText ? "(Lyrics not sync)"
+                    : lyrics.Instrumental ? "(Instrumental)"
+                    : "No lyrics found";
+                return new LyricsView { Message = briefly(track + ":" + message, message) };
             }
 
             return new LyricsView
@@ -333,6 +347,17 @@ namespace spotify_lyrics_overlay
                 CurrentIndex = FindCurrentLineIndex(parsedLyrics, currentTime),
                 CurrentTime = currentTime
             };
+        }
+
+        //text for the first few seconds a status (key) is shown, empty after that
+        private string briefly(string key, string text)
+        {
+            if (key != statusKey)
+            {
+                statusKey = key;
+                statusClock.Restart();
+            }
+            return statusClock.Elapsed < StatusDuration ? text : "";
         }
 
         //legacy two line karaoke text
