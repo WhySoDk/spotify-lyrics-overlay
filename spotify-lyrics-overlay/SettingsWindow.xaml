@@ -123,6 +123,21 @@
                         </StackPanel>
                     </Grid>
 
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Secondary font" Margin="0,12,0,6" />
+                    <ComboBox x:Name="secondaryFontComboBox" HorizontalAlignment="Stretch" SelectionChanged="setting_Changed"
+                              ToolTip="Used for lines the main font has no letters for, e.g. Thai lyrics with an English font">
+                        <ComboBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <VirtualizingStackPanel />
+                            </ItemsPanelTemplate>
+                        </ComboBox.ItemsPanel>
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Label}" FontFamily="{Binding Preview}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
                     <WrapPanel Margin="0,12,0,0">
                         <CheckBox x:Name="boldCheckBox" Content="Bold" Margin="0,0,16,0" MinWidth="0" Click="setting_Changed" />
                         <CheckBox x:Name="italicCheckBox" Content="Italic" Margin="0,0,16,0" MinWidth="0" Click="setting_Changed" />

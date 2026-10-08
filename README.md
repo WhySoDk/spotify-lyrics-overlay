@@ -13,6 +13,7 @@ An overlay that displays the lyrics based on the song currently playing on Spoti
       <h3>The Application supports:</h3>
       <ul>
         <li>Font selection</li>
+        <li>Secondary font for lines the main font can't show (e.g. Thai lyrics with an English font)</li>
         <li>Font size control</li>
         <li>Style control (Bold, Italic, and Drop shadow)</li>
         <li>Color selection</li>
@@ -27,7 +28,7 @@ An overlay that displays the lyrics based on the song currently playing on Spoti
 Any configuration will update the lyrics live.
 
 # Multi Language support
-If the selected font does not support the shown language, the default font will be used.
+If the selected font does not support the shown language, the secondary font is used for that line. With no secondary font set, Windows picks a default font.
 ![Still 2025-06-04 191303_4 1 1 (1)](https://github.com/user-attachments/assets/688c37cd-7329-44ed-b0cc-8f2c728915bc)
 
 # Use case

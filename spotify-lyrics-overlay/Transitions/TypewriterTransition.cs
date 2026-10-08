@@ -47,10 +47,10 @@ namespace spotify_lyrics_overlay.Transitions
             string typed = chars >= info.LengthInTextElements ? text : info.SubstringByTextElements(0, chars);
 
             float y = centerY - g.MeasureString("Ag", font).Height / 2f;
-            var item = MakeItem(g, font, typed, 1f, 1f, y);
+            var item = MakeItem(g, font, typed, 1f, 1f, y, fontText: text);
 
             // keep the left edge where the whole line will start instead of re-centering every character
-            item.OffsetX = (item.Size.Width - g.MeasureString(text, font).Width) / 2f;
+            item.OffsetX = (item.Size.Width - g.MeasureString(text, item.Font!).Width) / 2f;
             items.Add(item);
             return items;
         }

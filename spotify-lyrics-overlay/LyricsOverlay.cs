@@ -182,6 +182,8 @@ namespace spotify_lyrics_overlay
             if (config.italic) style |= FontStyle.Italic;
 
             using var font = new Font(config.fontName ?? "Arial", config.fontSize, style);
+            using var secondaryFont = createSecondaryFont(config.secondaryFontName, config.fontSize, style);
+            FontFallback.Configure(font, secondaryFont);
             var textColor = albumColor ?? ColorTranslator.FromHtml(config.fontColorHex);
 
             // 1. Layout the text, positions are relative to the selected screen
@@ -260,6 +262,29 @@ namespace spotify_lyrics_overlay
             }
         }
 
+        //null when no secondary font is set or it isn't installed, styles the font lacks are left out
+        private static Font? createSecondaryFont(string name, float size, FontStyle style)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return null;
+
+            FontFamily family;
+            try
+            {
+                family = new FontFamily(name);
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+
+            using var _ = family;
+            foreach (var candidate in new[] { style, style & ~FontStyle.Italic, style & ~FontStyle.Bold, FontStyle.Regular })
+            {
+                if (family.IsStyleAvailable(candidate)) return new Font(family, size, candidate);
+            }
+            return null;
+        }
+
         //box around the lines that have text, null when there are none
         private RectangleF? getBoxRect(List<TextItem> items, AppConfig config)
         {
@@ -312,8 +337,9 @@ namespace spotify_lyrics_overlay
         {
             if (string.IsNullOrWhiteSpace(item.Text) || item.Opacity <= 0f) return;
 
-            using var scaledFont = item.Scale == 1f ? null : new Font(font.FontFamily, font.Size * item.Scale, font.Style);
-            var itemFont = scaledFont ?? font;
+            var lineFont = item.Font ?? font;
+            using var scaledFont = item.Scale == 1f ? null : new Font(lineFont.FontFamily, lineFont.Size * item.Scale, lineFont.Style);
+            var itemFont = scaledFont ?? lineFont;
 
             if (item.Fill is not float fill)
             {

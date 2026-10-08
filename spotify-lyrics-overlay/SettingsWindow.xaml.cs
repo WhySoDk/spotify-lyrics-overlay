@@ -27,6 +27,9 @@ namespace spotify_lyrics_overlay
 
         private record MonitorItem(Screen Screen, string Label);
 
+        //Name is stored in the config, empty for no secondary font
+        private record FontChoice(string Name, string Label, string Preview);
+
         public SettingsWindow()
         {
             InitializeComponent();
@@ -34,6 +37,10 @@ namespace spotify_lyrics_overlay
             var config = ConfigManager.Instance.LoadConfig();
 
             fontComboBox.ItemsSource = GdiFontFamily.Families;
+            secondaryFontComboBox.ItemsSource = GdiFontFamily.Families
+                .Select(f => new FontChoice(f.Name, f.Name, f.Name))
+                .Prepend(new FontChoice("", "None", "Segoe UI"))
+                .ToList();
             transitionComboBox.ItemsSource = LyricsTransitions.All.Select(mode => mode.DisplayName).ToList();
             monitorComboBox.ItemsSource = Screen.AllScreens
                 .Select((screen, i) => new MonitorItem(screen,
@@ -43,6 +50,7 @@ namespace spotify_lyrics_overlay
             if (config.newlyGenerated)
             {
                 selectFont("arial");
+                selectSecondaryFont("");
                 fontSizeBox.Value = 27;
                 selectMonitor(Screen.PrimaryScreen?.DeviceName);
                 setFontColor(ColorHelper.FromHex(DefaultFontColor, Color.Gold));
@@ -54,6 +62,7 @@ namespace spotify_lyrics_overlay
             else
             {
                 selectFont(config.fontName);
+                selectSecondaryFont(config.secondaryFontName);
                 fontSizeBox.Value = config.fontSize;
 
                 boldCheckBox.IsChecked = config.bold;
@@ -98,6 +107,12 @@ namespace spotify_lyrics_overlay
             var font = ((GdiFontFamily[])fontComboBox.ItemsSource).FirstOrDefault(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
             if (font != null)
                 fontComboBox.SelectedItem = font;
+        }
+
+        private void selectSecondaryFont(string name)
+        {
+            var fonts = (List<FontChoice>)secondaryFontComboBox.ItemsSource;
+            secondaryFontComboBox.SelectedIndex = Math.Max(0, fonts.FindIndex(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase)));
         }
 
         private void selectMonitor(string? deviceName)
@@ -209,6 +224,10 @@ namespace spotify_lyrics_overlay
             if (fontComboBox.SelectedItem is GdiFontFamily font)
             {
                 config.fontName = font.Name;
+            }
+            if (secondaryFontComboBox.SelectedItem is FontChoice secondaryFont)
+            {
+                config.secondaryFontName = secondaryFont.Name;
             }
             config.fontSize = fontSizeBox.Value;
 

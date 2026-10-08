@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 
 namespace spotify_lyrics_overlay
 {
@@ -27,6 +27,7 @@ namespace spotify_lyrics_overlay
                 {
                     newlyGenerated = true,
                     fontName = "Helvetica",
+                    secondaryFontName = "",
                     fontSize = 12,
                     bold = false,
                     italic = false,

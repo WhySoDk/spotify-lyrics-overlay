@@ -15,6 +15,8 @@ namespace spotify_lyrics_overlay.Transitions
         //horizontal shift from the centered position
         public float OffsetX;
         public SizeF Size;
+        //font for this line, the secondary font when the main one is missing glyphs (null uses the main font)
+        public Font? Font;
     }
 
     //a lyrics line transition mode, add new modes to LyricsTransitions.All

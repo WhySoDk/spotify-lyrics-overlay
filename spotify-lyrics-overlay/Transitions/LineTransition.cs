@@ -74,14 +74,20 @@ namespace spotify_lyrics_overlay.Transitions
         //line text at i, null when out of range
         protected string? LineAt(int i) => lines != null && i >= 0 && i < lines.Count ? lines[i].Text : null;
 
-        protected static TextItem MakeItem(Graphics g, Font font, string text, float scale, float opacity, float y) => new TextItem
+        //fontText picks the font when only part of the line is shown, so the font doesn't change midway
+        protected static TextItem MakeItem(Graphics g, Font font, string text, float scale, float opacity, float y, string? fontText = null)
         {
-            Text = text,
-            Scale = scale,
-            Opacity = opacity,
-            Y = y,
-            Size = g.MeasureString(text, font) * scale
-        };
+            var lineFont = FontFallback.Pick(font, fontText ?? text);
+            return new TextItem
+            {
+                Text = text,
+                Scale = scale,
+                Opacity = opacity,
+                Y = y,
+                Font = lineFont,
+                Size = g.MeasureString(text, lineFont) * scale
+            };
+        }
 
         //0 to 1, eased, 1 when there is no running animation
         private float getProgress()

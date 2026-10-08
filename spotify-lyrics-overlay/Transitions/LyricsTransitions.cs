@@ -27,8 +27,12 @@ namespace spotify_lyrics_overlay.Transitions
         public static List<TextItem> StackLines(Graphics g, Font font, float centerY, IEnumerable<string> lines)
         {
             var items = lines
-                .Select(line => new TextItem { Text = line, Size = g.MeasureString(line, font) })
+                .Select(line => new TextItem { Text = line, Font = FontFallback.Pick(font, line) })
                 .ToList();
+            foreach (var item in items)
+            {
+                item.Size = g.MeasureString(item.Text, item.Font!);
+            }
 
             float y = centerY - items.Sum(item => item.Size.Height) / 2f;
             foreach (var item in items)
