@@ -1,0 +1,20 @@
+<UserControl x:Class="spotify_lyrics_overlay.NumberBox"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Height="32">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="32" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="32" />
+        </Grid.ColumnDefinitions>
+
+        <RepeatButton x:Name="decreaseButton" Grid.Column="0" Content="&#xE738;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                      FontSize="12" Padding="0" Delay="400" Interval="60" Click="decreaseButton_Click" ToolTip="Decrease" />
+        <TextBox x:Name="valueBox" Grid.Column="1" Margin="4,0" TextAlignment="Center" VerticalContentAlignment="Center"
+                 PreviewTextInput="valueBox_PreviewTextInput" TextChanged="valueBox_TextChanged" LostKeyboardFocus="valueBox_LostKeyboardFocus"
+                 PreviewKeyDown="valueBox_PreviewKeyDown" PreviewMouseWheel="valueBox_PreviewMouseWheel" />
+        <RepeatButton x:Name="increaseButton" Grid.Column="2" Content="&#xE710;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                      FontSize="12" Padding="0" Delay="400" Interval="60" Click="increaseButton_Click" ToolTip="Increase" />
+    </Grid>
+</UserControl>

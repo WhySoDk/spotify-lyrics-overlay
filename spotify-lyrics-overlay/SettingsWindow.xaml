@@ -1,0 +1,251 @@
+<Window x:Class="spotify_lyrics_overlay.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:spotify_lyrics_overlay"
+        Title="Spotify Lyrics Overlay"
+        Width="760" SizeToContent="Height" ResizeMode="CanMinimize"
+        WindowStartupLocation="CenterScreen"
+        Closing="Window_Closing">
+
+    <Window.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="16,14,16,16" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+
+        <Style x:Key="CardTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+
+        <Style x:Key="Swatch" TargetType="Border">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="ToolTip" Value="Pick a color" />
+        </Style>
+
+        <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Content" Value="&#xE790;" />
+            <Setter Property="ToolTip" Value="Pick a color" />
+        </Style>
+
+        <!-- big Start/Stop button, the color is set from code -->
+        <Style x:Key="RunButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Height" Value="56" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" CornerRadius="8" Background="{TemplateBinding Background}"
+                                BorderBrush="White" BorderThickness="0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.9" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.75" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderThickness" Value="2" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16,16,16,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="12" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- left column: text and position -->
+        <StackPanel Grid.Row="0" Grid.Column="0">
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Text" />
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="120" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Font" />
+                            <ComboBox x:Name="fontComboBox" SelectionChanged="fontComboBox_SelectionChanged">
+                                <ComboBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <VirtualizingStackPanel />
+                                    </ItemsPanelTemplate>
+                                </ComboBox.ItemsPanel>
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Name}" FontFamily="{Binding Name}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Size" />
+                            <local:NumberBox x:Name="fontSizeBox" Minimum="1" Maximum="1000" ValueChanged="setting_Changed" />
+                        </StackPanel>
+                    </Grid>
+
+                    <WrapPanel Margin="0,12,0,0">
+                        <CheckBox x:Name="boldCheckBox" Content="Bold" Margin="0,0,16,0" MinWidth="0" Click="setting_Changed" />
+                        <CheckBox x:Name="italicCheckBox" Content="Italic" Margin="0,0,16,0" MinWidth="0" Click="setting_Changed" />
+                        <CheckBox x:Name="dropShadowCheckBox" Content="Drop shadow" MinWidth="0" Click="setting_Changed" />
+                    </WrapPanel>
+
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Color" Margin="0,12,0,6" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="colorSwatch" Grid.Column="0" Style="{StaticResource Swatch}" MouseLeftButtonUp="colorPicker_Click" />
+                        <TextBox x:Name="colorHexBox" Grid.Column="1" Margin="8,0" VerticalContentAlignment="Center"
+                                 LostKeyboardFocus="colorHexBox_Commit" KeyDown="colorHexBox_KeyDown" />
+                        <Button Grid.Column="2" Style="{StaticResource IconButton}" Click="colorPicker_Click" />
+                    </Grid>
+                    <CheckBox x:Name="albumColorCheckBox" Content="Use the album cover color" Margin="0,8,0,0" Click="setting_Changed" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Position" />
+
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Monitor" />
+                    <ComboBox x:Name="monitorComboBox" HorizontalAlignment="Stretch" DisplayMemberPath="Label"
+                              SelectionChanged="monitorComboBox_SelectionChanged" />
+
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="X offset" />
+                            <local:NumberBox x:Name="xOffsetBox" ValueChanged="setting_Changed" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Y offset" />
+                            <local:NumberBox x:Name="yOffsetBox" ValueChanged="setting_Changed" />
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Style="{StaticResource FieldLabel}" Margin="0,8,0,0" FontSize="12"
+                               Text="0, 0 is the center of the screen" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- right column: background, transition and Spotify -->
+        <StackPanel Grid.Row="0" Grid.Column="2">
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <Grid>
+                        <TextBlock Style="{StaticResource CardTitle}" Text="Background box" />
+                        <CheckBox x:Name="backgroundCheckBox" HorizontalAlignment="Right" VerticalAlignment="Top" MinWidth="0"
+                                  Content="Show" Click="setting_Changed" />
+                    </Grid>
+
+                    <StackPanel IsEnabled="{Binding IsChecked, ElementName=backgroundCheckBox}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="120" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Color" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border x:Name="backgroundSwatch" Grid.Column="0" Style="{StaticResource Swatch}"
+                                            MouseLeftButtonUp="backgroundPicker_Click" />
+                                    <TextBox x:Name="backgroundHexBox" Grid.Column="1" Margin="8,0" VerticalContentAlignment="Center"
+                                             LostKeyboardFocus="backgroundHexBox_Commit" KeyDown="backgroundHexBox_KeyDown" />
+                                    <Button Grid.Column="2" Style="{StaticResource IconButton}" Click="backgroundPicker_Click" />
+                                </Grid>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Spread" />
+                                <local:NumberBox x:Name="backgroundSpreadBox" Minimum="0" Maximum="500" ValueChanged="setting_Changed" />
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Opacity" Margin="0,12,0,2" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="48" />
+                            </Grid.ColumnDefinitions>
+                            <Slider x:Name="backgroundOpacitySlider" Grid.Column="0" Minimum="0" Maximum="100" Value="70"
+                                    IsSnapToTickEnabled="True" TickFrequency="1" SmallChange="1" LargeChange="10"
+                                    VerticalAlignment="Center" ValueChanged="backgroundOpacitySlider_ValueChanged" />
+                            <TextBlock x:Name="backgroundOpacityText" Grid.Column="1" Text="70%" TextAlignment="Right"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Line transition" />
+                    <ComboBox x:Name="transitionComboBox" HorizontalAlignment="Stretch" SelectionChanged="setting_Changed" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Spotify" />
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Client ID" />
+                    <PasswordBox x:Name="clientIdBox" PasswordChanged="setting_Changed" />
+                    <CheckBox x:Name="rememberClientIdCheckBox" Content="Remember Client ID" Margin="0,8,0,0" Click="setting_Changed" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <Button x:Name="runButton" Grid.Row="1" Grid.ColumnSpan="3" Margin="0,16,0,0"
+                Style="{StaticResource RunButton}" Click="runButton_Click" />
+    </Grid>
+</Window>

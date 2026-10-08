@@ -16,6 +16,7 @@ namespace spotify_lyrics_overlay
             "#f3ce32", "#ffffff", "#1ed760", "#4fc3f7", "#b388ff", "#ff5c8a", "#ff9f43", "#000000"
         };
 
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public Color Color { get; private set; }
         public event Action<Color>? ColorChanged;
 
