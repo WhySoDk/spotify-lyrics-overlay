@@ -157,9 +157,10 @@ namespace spotify_lyrics_overlay
                     }
                 }
 
-                // the title can differ too, e.g. "(Feat. Kim Do Yeon)" vs "(Feat. Kim Doyeon of Weki Meki)",
-                // search by the title without the featured artists and pick a record with the same duration
-                string title = StripFeaturing(trackName);
+                // the title can differ too, e.g. "(Feat. Kim Do Yeon)" vs "(Feat. Kim Doyeon of Weki Meki)"
+                // or "- from the series Arcane" vs "(from the series Arcane)",
+                // search by the base title and pick a record with the same duration
+                string title = BaseTitle(trackName);
                 string searchUrl = $"https://lrclib.net/api/search?track_name={Uri.EscapeDataString(title)}&artist_name={Uri.EscapeDataString(artists[^1])}";
                 var (searchOk, searchJson) = await GetJsonAsync(searchUrl);
                 failed |= !searchOk;
@@ -168,10 +169,14 @@ namespace spotify_lyrics_overlay
                     .Where(r => r.TryGetProperty("duration", out var d) && d.ValueKind == JsonValueKind.Number
                         && Math.Abs(d.GetDouble() - durationSeconds) <= SearchDurationTolerance
                         && r.TryGetProperty("trackName", out var name) && name.ValueKind == JsonValueKind.String
-                        && StripFeaturing(name.GetString()!).Equals(title, StringComparison.OrdinalIgnoreCase))
-                    .OrderBy(r => Math.Abs(r.GetProperty("duration").GetDouble() - durationSeconds))
-                    .Select(ReadRecord)
-                    .OrderByDescending(HasSyncedLyrics)
+                        && BaseTitle(name.GetString()!).Equals(title, StringComparison.OrdinalIgnoreCase))
+                    .Select(r => (record: ReadRecord(r),
+                        sameTitle: r.GetProperty("trackName").GetString()!.Equals(trackName, StringComparison.OrdinalIgnoreCase),
+                        durationOff: Math.Abs(r.GetProperty("duration").GetDouble() - durationSeconds)))
+                    .OrderByDescending(c => HasSyncedLyrics(c.record))
+                    .ThenByDescending(c => c.sameTitle)
+                    .ThenBy(c => c.durationOff)
+                    .Select(c => c.record)
                     .FirstOrDefault();
 
                 if (match != null && (best == null || HasSyncedLyrics(match))) best = match;
@@ -235,13 +240,17 @@ namespace spotify_lyrics_overlay
             };
         }
 
-        private static readonly Regex FeaturingRegex = new(@"\s*[\(\[]\s*(feat\.?|ft\.?|featuring|with)\s[^\)\]]*[\)\]]", RegexOptions.IgnoreCase);
+        private static readonly Regex BracketsRegex = new(@"\([^)]*\)|\[[^\]]*\]");
+        private static readonly Regex SuffixRegex = new(@"\s[-–—]\s.*$");
+        private static readonly Regex SpacesRegex = new(@"\s+");
 
-        //"All night (Feat. Kim Do Yeon)" -> "All night"
-        private static string StripFeaturing(string trackName)
+        //title without the parts that differ between releases, the duration tells the versions apart:
+        //"All night (Feat. Kim Do Yeon)" -> "All night", "Ma Meilleure Ennemie - from the series Arcane" -> "Ma Meilleure Ennemie"
+        private static string BaseTitle(string trackName)
         {
-            string stripped = FeaturingRegex.Replace(trackName, "").Trim();
-            return stripped.Length > 0 ? stripped : trackName;
+            string stripped = BracketsRegex.Replace(trackName, " ");
+            stripped = SpacesRegex.Replace(SuffixRegex.Replace(stripped, ""), " ").Trim();
+            return stripped.Length > 0 ? stripped : trackName.Trim();
         }
 
         //write back a result from GetLyricsAsync after changing it, e.g. adding the album color
