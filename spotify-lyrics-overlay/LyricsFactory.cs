@@ -22,6 +22,7 @@ namespace spotify_lyrics_overlay
         public string? TrackId { get; set; }
         public string? TrackName { get; set; }
         public string? TrackArtists { get; set; }
+        public string? TrackArtist { get; set; }
         public int TrackLength { get; set; }
         public double CurrentTime { get; set; }
         public bool IsPlaying { get; set; }
@@ -154,6 +155,7 @@ namespace spotify_lyrics_overlay
                     TrackId = track.Id ?? track.Uri,
                     TrackName = track.Name,
                     TrackArtists = string.Join(", ", track.Artists.Select(a => a.Name)),
+                    TrackArtist = track.Artists.FirstOrDefault()?.Name,
                     TrackLength = track.DurationMs / 1000,
                     CurrentTime = (double)playback.ProgressMs / 1000,
                     IsPlaying = playback.IsPlaying,
@@ -219,7 +221,7 @@ namespace spotify_lyrics_overlay
             try
             {
                 var lookup = await LrcLibLyricsProvider.Instance.GetLyricsAsync(
-                    state.TrackName ?? "", state.TrackArtists ?? "", state.TrackLength
+                    state.TrackName ?? "", state.TrackArtists ?? "", state.TrackArtist ?? "", state.TrackLength
                 );
 
                 // ignore the result if the song changed while loading,
