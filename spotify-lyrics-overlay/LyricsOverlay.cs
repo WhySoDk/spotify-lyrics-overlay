@@ -15,6 +15,8 @@ namespace spotify_lyrics_overlay
         private Func<bool> isStartedProvider;
         private System.Windows.Forms.Timer updateTimer;
         private LyricsFactory lyricsFactory = new LyricsFactory();
+        private readonly CancellationTokenSource pollingCancellation = new();
+        private string lastConfigSnapshot = "";
 
         public LyricsOverlay(Func<bool> isStartedProvider)
         {
@@ -24,8 +26,16 @@ namespace spotify_lyrics_overlay
             initializeOverlay();
 
             RenderLayeredWindow();
-            updateLyrics();
+            //Spotify is polled in its own loop, the timer only renders the local state
+            _ = lyricsFactory.RunPollingAsync(isStartedProvider, pollingCancellation.Token);
             setupTimer();
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            pollingCancellation.Cancel();
+            updateTimer.Stop();
+            base.OnFormClosed(e);
         }
 
         //treat this form as a layered Window
@@ -67,6 +77,11 @@ namespace spotify_lyrics_overlay
 
         private void applyConfig()
         {
+            // only re-render when the config actually changed to save CPU
+            string configSnapshot = ConfigManager.Instance.LoadConfig().ToString();
+            if (configSnapshot == lastConfigSnapshot) return;
+            lastConfigSnapshot = configSnapshot;
+
             updateScreenBounds();
 
             //call custom render method 
@@ -76,14 +91,13 @@ namespace spotify_lyrics_overlay
         private void setupTimer()
         {
             updateTimer = new System.Windows.Forms.Timer();
-            updateTimer.Interval = 200;
+            updateTimer.Interval = 100;
             updateTimer.Tick += (s, e) =>
             {
                 if (isStartedProvider())
                 {
                     if (!this.Visible) this.Show();
 
-                    // check if config changed before calling this every 200ms to save CPU
                     applyConfig();
                     updateLyrics();
                 }
@@ -95,9 +109,9 @@ namespace spotify_lyrics_overlay
             updateTimer.Start();
         }
 
-        public async Task updateLyrics()
+        public void updateLyrics()
         {
-            string newLyrics = await lyricsFactory.getLyricsAsync();
+            string newLyrics = lyricsFactory.getLyrics();
 
             //re-render if text actually changed
             if (currentLyrics != newLyrics)

@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics;
 using SpotifyAPI.Web;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -19,6 +19,7 @@ namespace spotify_lyrics_overlay
 
     internal class PlaybackState
     {
+        public string? TrackId { get; set; }
         public string? TrackName { get; set; }
         public string? TrackArtists { get; set; }
         public int TrackLength { get; set; }
@@ -28,68 +29,216 @@ namespace spotify_lyrics_overlay
 
     internal class LyricsFactory
     {
+        private static readonly TimeSpan PlayingPollInterval = TimeSpan.FromSeconds(1.5);
+        private static readonly TimeSpan IdlePollInterval = TimeSpan.FromSeconds(4);
+        private static readonly TimeSpan InactiveCheckInterval = TimeSpan.FromMilliseconds(250);
+        private static readonly TimeSpan MinPollInterval = TimeSpan.FromMilliseconds(500);
+        private static readonly TimeSpan MaxBackoff = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(5);
+
         private SpotifyClient? spotify;
+
+        // last playback state from Spotify and when we received it,
+        // the position in between polls is estimated locally
+        private PlaybackState? playbackState;
+        private bool hasPolled;
+        private readonly Stopwatch sincePoll = new();
+
+        private string? lyricsTrackId;
+        private bool lyricsLoaded;
+        private bool lyricsLoading;
+        private LyricsResult? lyrics;
         private string? parsedLyricsSource;
         private List<LyricLine> parsedLyrics = new();
 
         public LyricsFactory()
         {
         }
-        private async Task<PlaybackState?> GetPlaybackStateAsync()
+
+        //single polling loop, only one request to Spotify is in flight at a time
+        public async Task RunPollingAsync(Func<bool> isActive, CancellationToken cancellationToken)
         {
-            spotify ??= await SpotifyConnector.GetClientAsync();
-            var playback = await spotify.Player.GetCurrentPlayback();
+            TimeSpan backoff = TimeSpan.Zero;
 
-            if (playback?.Item is FullTrack track)
+            while (!cancellationToken.IsCancellationRequested)
             {
-                string trackName = track.Name;
-                string trackArtists = string.Join(", ", track.Artists.Select(a => a.Name));
-                int trackLength = track.DurationMs / 1000;
-                double currentTime = (double)playback.ProgressMs / 1000;
-                bool isPlaying = playback.IsPlaying;
+                TimeSpan delay;
 
-                var state = new PlaybackState
+                if (!isActive())
                 {
-                    TrackName = trackName,
-                    TrackArtists = trackArtists,
-                    TrackLength = trackLength,
-                    CurrentTime = currentTime,
-                    IsPlaying = isPlaying
-                };
+                    // force a fresh poll when the overlay is started again
+                    hasPolled = false;
+                    delay = InactiveCheckInterval;
+                }
+                else
+                {
+                    try
+                    {
+                        await PollPlaybackAsync(cancellationToken);
+                        backoff = TimeSpan.Zero;
+                        delay = GetNextPollDelay();
+                    }
+                    catch (APITooManyRequestsException ex)
+                    {
+                        delay = ex.RetryAfter + TimeSpan.FromSeconds(1);
+                        Debug.WriteLine($"Spotify rate limit hit, retrying in {delay.TotalSeconds}s");
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        // timeouts, network errors, failed login: back off exponentially
+                        backoff = backoff == TimeSpan.Zero
+                            ? TimeSpan.FromSeconds(2)
+                            : TimeSpan.FromTicks(Math.Min(backoff.Ticks * 2, MaxBackoff.Ticks));
+                        delay = backoff;
+                        Debug.WriteLine($"Error polling Spotify, retrying in {delay.TotalSeconds}s: {ex.Message}");
+                    }
+                }
 
-                var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
-                System.Diagnostics.Debug.WriteLine($"Playback info: {json}");
-
-                return state;
+                try
+                {
+                    await Task.Delay(delay, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
             }
-
-            return null;
         }
 
-
-
-        public async Task<string> getLyricsAsync()
+        private async Task PollPlaybackAsync(CancellationToken cancellationToken)
         {
+            spotify ??= await SpotifyConnector.GetClientAsync();
 
-            var playBackState = await GetPlaybackStateAsync();
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(RequestTimeout);
+            var playback = await spotify.Player.GetCurrentPlayback(timeout.Token);
+
+            PlaybackState? state = null;
+            if (playback?.Item is FullTrack track)
+            {
+                state = new PlaybackState
+                {
+                    TrackId = track.Id ?? track.Uri,
+                    TrackName = track.Name,
+                    TrackArtists = string.Join(", ", track.Artists.Select(a => a.Name)),
+                    TrackLength = track.DurationMs / 1000,
+                    CurrentTime = (double)playback.ProgressMs / 1000,
+                    IsPlaying = playback.IsPlaying
+                };
+
+                if (state.TrackId != playbackState?.TrackId)
+                {
+                    Debug.WriteLine($"Now playing: {state.TrackName} by {state.TrackArtists}");
+                }
+            }
+
+            playbackState = state;
+            hasPolled = true;
+            sincePoll.Restart();
+
+            if (state != null)
+            {
+                UpdateLyricsForTrack(state);
+            }
+        }
+
+        private TimeSpan GetNextPollDelay()
+        {
+            var state = playbackState;
+            if (state == null || !state.IsPlaying)
+            {
+                return IdlePollInterval;
+            }
+
+            // poll right after the song ends so the next song is picked up quickly
+            var untilTrackEnd = TimeSpan.FromSeconds(state.TrackLength - state.CurrentTime) + TimeSpan.FromMilliseconds(300);
+            if (untilTrackEnd < PlayingPollInterval)
+            {
+                return untilTrackEnd < MinPollInterval ? MinPollInterval : untilTrackEnd;
+            }
+            return PlayingPollInterval;
+        }
+
+        private void UpdateLyricsForTrack(PlaybackState state)
+        {
+            if (state.TrackId != lyricsTrackId)
+            {
+                lyricsTrackId = state.TrackId;
+                lyricsLoaded = false;
+                lyrics = null;
+            }
+
+            if (lyricsLoaded || lyricsLoading) return;
+
+            _ = LoadLyricsAsync(state);
+        }
+
+        private async Task LoadLyricsAsync(PlaybackState state)
+        {
+            lyricsLoading = true;
+            try
+            {
+                var result = await LrcLibLyricsProvider.Instance.GetLyricsAsync(
+                    state.TrackName ?? "", state.TrackArtists ?? "", state.TrackLength
+                );
+
+                // ignore the result if the song changed while loading
+                if (state.TrackId == lyricsTrackId)
+                {
+                    lyrics = result;
+                    lyricsLoaded = true;
+                }
+            }
+            finally
+            {
+                lyricsLoading = false;
+            }
+        }
+
+        //estimated playback position, without asking Spotify
+        private double GetEstimatedTime(PlaybackState state)
+        {
+            double time = state.CurrentTime;
+            if (state.IsPlaying)
+            {
+                time += sincePoll.Elapsed.TotalSeconds;
+            }
+            return Math.Min(time, state.TrackLength);
+        }
+
+        public string getLyrics()
+        {
+            if (!hasPolled)
+            {
+                return "";
+            }
+
+            var playBackState = playbackState;
 
             if (playBackState == null)
             {
                 return "Play smt on Spotify";
             }
-            
+
             if (playBackState.IsPlaying == false)
             {
                 return "";
             }
 
-            var lyrics = await LrcLibLyricsProvider.Instance.GetLyricsAsync(
-             playBackState.TrackName, playBackState.TrackArtists, playBackState.TrackLength
-            );
+            double currentTime = GetEstimatedTime(playBackState);
 
-            if (lyrics == null )
+            if (!lyricsLoaded)
             {
-                if (playBackState.CurrentTime < 5)
+                return "";
+            }
+
+            if (lyrics == null)
+            {
+                if (currentTime < 5)
                 {
                     return "No lyrics found";
                 }
@@ -97,7 +246,7 @@ namespace spotify_lyrics_overlay
                 {
                     return "";
                 }
-                
+
             }
             if (string.IsNullOrEmpty(lyrics.SyncLyrics))
             {
@@ -110,7 +259,7 @@ namespace spotify_lyrics_overlay
                 parsedLyricsSource = lyrics.SyncLyrics;
             }
 
-            return GetKaraokeLines(parsedLyrics, playBackState.CurrentTime);
+            return GetKaraokeLines(parsedLyrics, currentTime);
         }
 
         private static readonly Regex TimestampRegex = new(@"^\[(\d+):(\d+(?:[.:]\d+)?)\]");
