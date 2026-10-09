@@ -6,7 +6,7 @@ An overlay that shows the synced lyrics of the song currently playing on Spotify
 <table>
   <tr>
     <td>
-      <img width="755" height="857" alt="image" src="https://github.com/user-attachments/assets/5979fb11-7f9f-42c9-8621-0620f6c55991"
+      <img width="1500" alt="image" src="https://github.com/user-attachments/assets/5979fb11-7f9f-42c9-8621-0620f6c55991"
 "/>
     </td>
     <td>
