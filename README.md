@@ -1,4 +1,4 @@
-<img src="https://github.com/WhySoDk/largeGif/blob/main/Timeline.gif" />
+<img src="https://github.com/WhySoDk/spotify-lyrics-overlay/blob/main/gif/Timeline-12fps-1.5x.gif" />
 
  # Spotify Lyrics Overlay
 An overlay that shows the synced lyrics of the song currently playing on Spotify, on top of everything else on your screen.
