@@ -117,7 +117,7 @@ public class SpotifyConnector
         try
         {
             var cache = new TokenCache { ClientId = ClientId, Token = token };
-            File.WriteAllText(TokenCacheFilePath, JsonSerializer.Serialize(cache));
+            AtomicFile.WriteAllText(TokenCacheFilePath, JsonSerializer.Serialize(cache));
         }
         catch (Exception ex)
         {

@@ -13,13 +13,9 @@ namespace spotify_lyrics_overlay
 
         private ConfigManager()
         {
-            if (File.Exists(ConfigFilePath))
+            if (File.Exists(ConfigFilePath) && ReadConfig() is AppConfig config)
             {
-                string json = File.ReadAllText(ConfigFilePath);
-                Config = JsonSerializer.Deserialize<AppConfig>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                })!;
+                Config = config;
             }
             else
             {
@@ -55,6 +51,32 @@ namespace spotify_lyrics_overlay
             }
         }
 
+        //null when the file can't be read, it is kept as config.json.broken so the settings aren't lost for good
+        private static AppConfig? ReadConfig()
+        {
+            try
+            {
+                string json = File.ReadAllText(ConfigFilePath);
+                return JsonSerializer.Deserialize<AppConfig>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? throw new JsonException("config is null");
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Config unreadable, starting with the defaults", ex);
+                try
+                {
+                    File.Copy(ConfigFilePath, ConfigFilePath + ".broken", overwrite: true);
+                }
+                catch (Exception copyEx)
+                {
+                    Log.Error("Failed to keep the broken config", copyEx);
+                }
+                return null;
+            }
+        }
+
         public AppConfig LoadConfig() => Config;
 
         public void SaveConfig()
@@ -65,7 +87,7 @@ namespace spotify_lyrics_overlay
             };
 
             string json = JsonSerializer.Serialize(Config, options);
-            File.WriteAllText(ConfigFilePath, json);
+            AtomicFile.WriteAllText(ConfigFilePath, json);
         }
     }
 }
