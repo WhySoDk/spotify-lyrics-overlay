@@ -8,29 +8,28 @@ namespace spotify_lyrics_overlay
     {
         private static readonly HttpClient httpClient = new() { Timeout = TimeSpan.FromSeconds(10) };
 
-        // cover url -> picked color as hex, "" when the cover has no usable color.
+        // picked colors are cached by cover url in CacheDb ("" when the cover has no usable color),
         // kept apart from the lyrics so it doesn't wait for them, songs of one album share it
-        private static readonly string CacheFilePath = Path.Combine("lyrics_cache", "album_colors.json");
-        private static readonly object sync = new();
-        private static Dictionary<string, string>? cache;
 
         //pick the color of the cover again on the next lookup
         public static void Forget(string url)
         {
-            lock (sync)
+            try
             {
-                if (LoadCache().Remove(url)) SaveCache();
+                CacheDb.DeleteAlbumColor(url);
+            }
+            catch (Exception ex)
+            {
+                Log.Write($"Error deleting album color cache: {ex.Message}");
             }
         }
 
         //null when the cover can't be loaded or has no usable color
         public static async Task<Color?> FromImageUrlAsync(string url)
         {
-            lock (sync)
-            {
-                if (LoadCache().TryGetValue(url, out var hex))
-                    return ColorHelper.IsValidHex(hex) ? ColorHelper.FromHex(hex, Color.White) : null;
-            }
+            string? hex = readCache(url);
+            if (hex != null)
+                return ColorHelper.IsValidHex(hex) ? ColorHelper.FromHex(hex, Color.White) : null;
 
             try
             {
@@ -43,11 +42,7 @@ namespace spotify_lyrics_overlay
                     return Pick(ColorThief.GetPalette(image, colorCount: 5, quality: 10));
                 });
 
-                lock (sync)
-                {
-                    LoadCache()[url] = color is Color c ? ColorHelper.ToHex(c) : "";
-                    SaveCache();
-                }
+                writeCache(url, color is Color c ? ColorHelper.ToHex(c) : "");
                 return color;
             }
             catch (Exception ex)
@@ -58,28 +53,24 @@ namespace spotify_lyrics_overlay
             }
         }
 
-        private static Dictionary<string, string> LoadCache()
+        private static string? readCache(string url)
         {
-            if (cache != null) return cache;
             try
             {
-                cache = File.Exists(CacheFilePath)
-                    ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(CacheFilePath))
-                    : null;
+                return CacheDb.ReadAlbumColor(url);
             }
             catch (Exception ex)
             {
                 Log.Write($"Error reading album color cache: {ex.Message}");
+                return null;
             }
-            return cache ??= new Dictionary<string, string>();
         }
 
-        private static void SaveCache()
+        private static void writeCache(string url, string hex)
         {
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(CacheFilePath)!);
-                File.WriteAllText(CacheFilePath, System.Text.Json.JsonSerializer.Serialize(cache));
+                CacheDb.WriteAlbumColor(url, hex);
             }
             catch (Exception ex)
             {

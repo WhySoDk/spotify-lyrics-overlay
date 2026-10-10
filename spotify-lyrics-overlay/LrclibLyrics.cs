@@ -28,7 +28,6 @@ namespace spotify_lyrics_overlay
         private static readonly Lazy<LrcLibLyricsProvider> lazy = new(() => new LrcLibLyricsProvider());
         public static LrcLibLyricsProvider Instance => lazy.Value;
 
-        private const string CacheDirectory = "lyrics_cache";
         private static readonly TimeSpan FailedRetryDelay = TimeSpan.FromSeconds(30);
         // synced lyrics are kept forever, no lyrics or plain lyrics only are looked up again after this
         private static readonly TimeSpan IncompleteCacheDuration = TimeSpan.FromDays(7);
@@ -86,7 +85,7 @@ namespace spotify_lyrics_overlay
         private async Task<LyricsLookup> LoadLyricsAsync(string key, string trackName, string artistName, string primaryArtist, int durationSeconds)
         {
             bool found = true;
-            LyricsResult? cached = ReadDiskCache(key);
+            LyricsResult? cached = ReadDiskCache(key, trackName, artistName, durationSeconds);
             LyricsResult? result = cached?.NotFound == true ? null : cached;
 
             try
@@ -131,7 +130,7 @@ namespace spotify_lyrics_overlay
 
                         var entry = result ?? new LyricsResult { NotFound = true };
                         entry.CheckedAt = IsComplete(entry) ? null : DateTime.UtcNow;
-                        WriteDiskCache(key, entry);
+                        WriteDiskCache(key, trackName, artistName, durationSeconds, entry);
                         DebugStatus.Show(IsComplete(entry)
                             ? $"Found {Describe(result)}"
                             : $"Found {Describe(result)}, cached for {DebugStatus.FormatDuration(IncompleteCacheDuration)}");
@@ -365,7 +364,7 @@ namespace spotify_lyrics_overlay
             result.Manual = true;
 
             string key = GetKey(trackName, artistName, durationSeconds);
-            WriteDiskCache(key, result);
+            WriteDiskCache(key, trackName, artistName, durationSeconds, result);
             lock (memoryCache)
             {
                 memoryCache[key] = result;
@@ -385,7 +384,7 @@ namespace spotify_lyrics_overlay
 
             try
             {
-                File.Delete(GetCacheFilePath(key));
+                CacheDb.DeleteLyrics(CacheKey(key));
             }
             catch (Exception ex)
             {
@@ -393,19 +392,17 @@ namespace spotify_lyrics_overlay
             }
         }
 
-        private static string GetCacheFilePath(string key)
+        //database key of the song, the file name the old json cache used
+        private static string CacheKey(string key)
         {
-            var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)));
-            return Path.Combine(CacheDirectory, hash + ".json");
+            return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)));
         }
 
-        private static LyricsResult? ReadDiskCache(string key)
+        private static LyricsResult? ReadDiskCache(string key, string trackName, string artistName, int durationSeconds)
         {
             try
             {
-                string path = GetCacheFilePath(key);
-                if (!File.Exists(path)) return null;
-                return JsonSerializer.Deserialize<LyricsResult>(File.ReadAllText(path));
+                return CacheDb.ReadLyrics(CacheKey(key), trackName, artistName, durationSeconds);
             }
             catch (Exception ex)
             {
@@ -414,12 +411,11 @@ namespace spotify_lyrics_overlay
             }
         }
 
-        private static void WriteDiskCache(string key, LyricsResult result)
+        private static void WriteDiskCache(string key, string trackName, string artistName, int durationSeconds, LyricsResult result)
         {
             try
             {
-                Directory.CreateDirectory(CacheDirectory);
-                File.WriteAllText(GetCacheFilePath(key), JsonSerializer.Serialize(result));
+                CacheDb.WriteLyrics(CacheKey(key), trackName, artistName, durationSeconds, result);
             }
             catch (Exception ex)
             {

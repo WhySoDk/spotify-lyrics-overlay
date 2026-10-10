@@ -82,6 +82,8 @@ When LRCLIB's best match only has plain lyrics, the app still searches for a syn
 
 The album cover color has its own cache and is picked while the lyrics are still loading.
 
+Everything is kept in one SQLite database, `lyrics_cache/cache.db`, which can be opened with e.g. [DB Browser for SQLite](https://sqlitebrowser.org/). The old cache (one `.json` file per song) is imported on the first start and moved to `lyrics_cache/imported_json`, imported songs get their name filled in the next time they play.
+
 # Fixing wrong or missing lyrics
 The **Lyrics** card has three buttons, they work on the song that is playing right now:
 
