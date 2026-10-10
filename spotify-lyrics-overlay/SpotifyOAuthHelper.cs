@@ -80,7 +80,7 @@ public class SpotifyConnector
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Cached token unusable, logging in again: {ex.Message}");
+            Log.Write($"Cached token unusable, logging in again: {ex.Message}");
             return null;
         }
     }
@@ -121,7 +121,7 @@ public class SpotifyConnector
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Failed to save token cache: {ex.Message}");
+            Log.Write($"Failed to save token cache: {ex.Message}");
         }
     }
 
@@ -133,7 +133,7 @@ public class SpotifyConnector
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Failed to open browser: {ex.Message}");
+            Log.Write($"Failed to open browser: {ex.Message}");
         }
     }
 

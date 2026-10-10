@@ -1,4 +1,3 @@
-using System.Diagnostics;
 
 namespace spotify_lyrics_overlay
 {
@@ -54,7 +53,7 @@ namespace spotify_lyrics_overlay
             catch (Exception ex)
             {
                 // not cached, tried again next time
-                Debug.WriteLine($"Error loading album color: {ex.Message}");
+                Log.Write($"Error loading album color: {ex.Message}");
                 return null;
             }
         }
@@ -70,7 +69,7 @@ namespace spotify_lyrics_overlay
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error reading album color cache: {ex.Message}");
+                Log.Write($"Error reading album color cache: {ex.Message}");
             }
             return cache ??= new Dictionary<string, string>();
         }
@@ -84,7 +83,7 @@ namespace spotify_lyrics_overlay
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error writing album color cache: {ex.Message}");
+                Log.Write($"Error writing album color cache: {ex.Message}");
             }
         }
 

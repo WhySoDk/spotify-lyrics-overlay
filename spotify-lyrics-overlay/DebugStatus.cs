@@ -20,7 +20,7 @@ namespace spotify_lyrics_overlay
                 isCacheHit = cacheHit;
                 clock.Restart();
             }
-            Debug.WriteLine($"[lyrics] {message}");
+            Log.Write($"[lyrics] {message}");
         }
 
         //null once the message has been shown long enough

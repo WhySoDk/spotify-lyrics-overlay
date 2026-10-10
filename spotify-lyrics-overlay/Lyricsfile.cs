@@ -39,7 +39,7 @@ namespace spotify_lyrics_overlay
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error parsing Lyricsfile: {ex.Message}");
+                Log.Write($"Error parsing Lyricsfile: {ex.Message}");
                 return null;
             }
         }

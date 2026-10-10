@@ -119,7 +119,7 @@ namespace spotify_lyrics_overlay
                     catch (APITooManyRequestsException ex)
                     {
                         delay = ex.RetryAfter + TimeSpan.FromSeconds(1);
-                        Debug.WriteLine($"Spotify rate limit hit, retrying in {delay.TotalSeconds}s");
+                        Log.Write($"Spotify rate limit hit, retrying in {delay.TotalSeconds}s");
                     }
                     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                     {
@@ -133,7 +133,7 @@ namespace spotify_lyrics_overlay
                             ? TimeSpan.FromSeconds(2)
                             : TimeSpan.FromTicks(Math.Min(backoff.Ticks * 2, MaxBackoff.Ticks));
                         delay = backoff;
-                        Debug.WriteLine($"Error polling Spotify, retrying in {delay.TotalSeconds}s: {ex.Message}");
+                        Log.Write($"Error polling Spotify, retrying in {delay.TotalSeconds}s: {ex.GetType().Name}: {ex.Message}");
                     }
                 }
 
@@ -174,7 +174,7 @@ namespace spotify_lyrics_overlay
 
                 if (state.TrackId != playbackState?.TrackId)
                 {
-                    Debug.WriteLine($"Now playing: {state.TrackName} by {state.TrackArtists}");
+                    Log.Write($"Now playing: {state.TrackName} by {state.TrackArtists}");
                 }
             }
 

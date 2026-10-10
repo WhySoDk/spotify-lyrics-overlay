@@ -177,7 +177,7 @@ namespace spotify_lyrics_overlay
                     if (json != null)
                     {
                         best = ReadRecord(JsonDocument.Parse(json).RootElement);
-                        System.Diagnostics.Debug.WriteLine($"Fetched lyrics for {trackName} by {artist}: {best.SyncLyrics ?? "No synced lyrics"}");
+                        Log.Write($"Fetched lyrics for {trackName} by {artist}: {Describe(best)}");
                         if (HasSyncedLyrics(best) || best.Instrumental) return (true, best);
                         // lrclib can pick a record with only plain lyrics when another one of the same song is synced
                         break;
@@ -208,12 +208,12 @@ namespace spotify_lyrics_overlay
 
                 if (match != null && (best == null || HasSyncedLyrics(match))) best = match;
 
-                System.Diagnostics.Debug.WriteLine($"Searched lyrics for {trackName} by {artistName}: {best?.SyncLyrics ?? "No synced lyrics"}");
+                Log.Write($"Searched lyrics for {trackName} by {artistName}: {Describe(best)}");
                 return (best != null || !failed, best);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error fetching lyrics: {ex.Message}");
+                Log.Write($"Error fetching lyrics: {ex.Message}");
                 return (false, null);
             }
         }
@@ -329,7 +329,7 @@ namespace spotify_lyrics_overlay
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading lrclib record: {ex.Message}");
+                Log.Write($"Error loading lrclib record: {ex.Message}");
                 return "Couldn't reach lrclib, try again in a moment";
             }
             if (json == null) return $"lrclib has no record #{id}";
@@ -389,7 +389,7 @@ namespace spotify_lyrics_overlay
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error deleting lyrics cache: {ex.Message}");
+                Log.Write($"Error deleting lyrics cache: {ex.Message}");
             }
         }
 
@@ -409,7 +409,7 @@ namespace spotify_lyrics_overlay
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error reading lyrics cache: {ex.Message}");
+                Log.Write($"Error reading lyrics cache: {ex.Message}");
                 return null;
             }
         }
@@ -423,7 +423,7 @@ namespace spotify_lyrics_overlay
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error writing lyrics cache: {ex.Message}");
+                Log.Write($"Error writing lyrics cache: {ex.Message}");
             }
         }
     }
