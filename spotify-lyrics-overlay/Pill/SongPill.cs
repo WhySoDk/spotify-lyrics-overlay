@@ -1,0 +1,413 @@
+using System.Diagnostics;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.Drawing.Text;
+using System.Runtime.InteropServices;
+
+namespace spotify_lyrics_overlay.Pill
+{
+    //pill that pops out of the top of the screen when the song changes: cover, title, artist and lyrics status.
+    //a window and timer of its own, so it animates apart from the lyrics and only runs while it's on screen
+    internal class SongPill : Form
+    {
+        private readonly LyricsFactory lyrics;
+        private readonly System.Windows.Forms.Timer timer = new() { Interval = 16 };
+        private readonly Stopwatch frameClock = new();
+        // animation time, see PillAnimation
+        private float animMs;
+        private PillPose pose;
+
+        private readonly Font titleFont = new(PillStyle.FontName, PillStyle.TitleSize, FontStyle.Bold);
+        private readonly Font artistFont = new(PillStyle.FontName, PillStyle.ArtistSize);
+        private readonly Font statusFont = new(PillStyle.FontName, PillStyle.StatusSize, FontStyle.Bold);
+        private readonly Graphics measureGraphics = createMeasureGraphics();
+
+        // song on the pill, null while hidden
+        private PlaybackState? song;
+        private Bitmap? cover;
+        private SongLyricsStatus? status;
+        private string statusText = "";
+        private Color statusDot;
+
+        // window area at the top center of the screen, the pill is drawn inside it
+        private Size area;
+        private Point areaPos;
+
+        //layout at full size, origin at the pill's top left. the width glides to the target when the status changes
+        private float targetWidth;
+        private float width;
+        private RectangleF thumbRect, titleRect, artistRect, statusRect;
+
+        public SongPill(LyricsFactory lyrics)
+        {
+            this.lyrics = lyrics;
+
+            FormBorderStyle = FormBorderStyle.None;
+            ShowInTaskbar = false;
+            TopMost = true;
+            StartPosition = FormStartPosition.Manual;
+
+            timer.Tick += (s, e) => tick();
+            // WinForms resets the window size when showing it, draw again afterwards
+            VisibleChanged += (s, e) => { if (Visible) render(); };
+        }
+
+        private static Graphics createMeasureGraphics()
+        {
+            var g = Graphics.FromImage(new Bitmap(1, 1));
+            g.TextRenderingHint = TextRenderingHint.AntiAlias;
+            return g;
+        }
+
+        protected override bool ShowWithoutActivation => true;
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                var cp = base.CreateParams;
+                // WS_EX_LAYERED | WS_EX_TRANSPARENT (click-through) | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, same as the overlay
+                cp.ExStyle |= 0x80000 | 0x20 | 0x80 | 0x8000000;
+                return cp;
+            }
+        }
+
+        //start the animation for a song on the given screen, from the beginning if one is running
+        public void Play(PlaybackState newSong, Rectangle screenBounds)
+        {
+            song = newSong;
+            cover?.Dispose();
+            cover = null;
+            status = null;
+
+            area = new Size((int)(PillStyle.MaxWidth * 1.3f) + 40, (int)(PillStyle.RestTop + PillStyle.Height * 1.5f) + 40);
+            areaPos = new Point(screenBounds.X + (screenBounds.Width - area.Width) / 2, screenBounds.Y);
+            Bounds = new Rectangle(areaPos, area);
+
+            updateStatus();
+            width = targetWidth;
+            animMs = 0;
+            pose = PillAnimation.At(0, width);
+            _ = loadCoverAsync(newSong);
+
+            render();
+            if (!Visible) Show();
+            frameClock.Restart();
+            timer.Start();
+        }
+
+        //hide right away, e.g. when the overlay is stopped
+        public void Dismiss()
+        {
+            if (song == null) return;
+            song = null;
+            timer.Stop();
+            Hide();
+            cover?.Dispose();
+            cover = null;
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            timer.Stop();
+            base.OnFormClosed(e);
+        }
+
+        private async Task loadCoverAsync(PlaybackState forSong)
+        {
+            if (forSong.AlbumImageUrl == null) return;
+            var bitmap = await AlbumCover.LoadAsync(forSong.AlbumImageUrl);
+            // the next song may have started while loading
+            if (!ReferenceEquals(song, forSong))
+            {
+                bitmap?.Dispose();
+                return;
+            }
+            cover = bitmap;
+        }
+
+        private void tick()
+        {
+            if (song == null) return;
+
+            float dt = Math.Min((float)frameClock.Elapsed.TotalMilliseconds, 100f);
+            frameClock.Restart();
+
+            animMs += dt;
+            if (animMs >= PillAnimation.TotalMs)
+            {
+                Dismiss();
+                return;
+            }
+
+            updateStatus();
+            width += (targetWidth - width) * (1 - MathF.Exp(-dt / 1000f / PillStyle.WidthSmoothingSeconds));
+
+            pose = PillAnimation.At(animMs, width);
+            render();
+        }
+
+        //the lyrics finish loading while the pill is up, the chip follows
+        private void updateStatus()
+        {
+            var current = lyrics.GetLyricsStatus(song?.TrackId);
+            if (current == status) return;
+            status = current;
+
+            (statusText, statusDot) = current switch
+            {
+                SongLyricsStatus.Synced => ("Synced", Color.FromArgb(30, 215, 96)),
+                SongLyricsStatus.Plain => ("Plain", Color.FromArgb(255, 196, 0)),
+                SongLyricsStatus.Instrumental => ("Instrumental", Color.FromArgb(120, 160, 255)),
+                SongLyricsStatus.NotFound => ("No lyrics", Color.FromArgb(255, 80, 80)),
+                SongLyricsStatus.Failed => ("Offline", Color.FromArgb(255, 80, 80)),
+                _ => ("Loading", Color.FromArgb(150, 150, 150)),
+            };
+            layout();
+        }
+
+        private void layout()
+        {
+            string title = song?.TrackName ?? "";
+            string artist = song?.TrackArtists ?? "";
+            var titleSize = measureGraphics.MeasureString(title, titleFont);
+            var artistSize = measureGraphics.MeasureString(artist, artistFont);
+            var statusTextSize = measureGraphics.MeasureString(statusText, statusFont);
+
+            float statusWidth = PillStyle.StatusPaddingX * 2 + PillStyle.StatusDotSize + 5f + statusTextSize.Width;
+            float textX = PillStyle.PaddingLeft + PillStyle.ThumbSize + PillStyle.ThumbGap;
+            float fixedWidth = textX + PillStyle.StatusGap + statusWidth + PillStyle.PaddingRight;
+            targetWidth = Math.Clamp(fixedWidth + Math.Max(titleSize.Width, artistSize.Width), PillStyle.MinWidth, PillStyle.MaxWidth);
+            float textWidth = targetWidth - fixedWidth;
+
+            thumbRect = new RectangleF(PillStyle.PaddingLeft, (PillStyle.Height - PillStyle.ThumbSize) / 2, PillStyle.ThumbSize, PillStyle.ThumbSize);
+
+            float textHeight = titleSize.Height + PillStyle.LineGap + artistSize.Height;
+            float textTop = (PillStyle.Height - textHeight) / 2;
+            titleRect = new RectangleF(textX, textTop, textWidth, titleSize.Height);
+            artistRect = new RectangleF(textX, textTop + titleSize.Height + PillStyle.LineGap, textWidth, artistSize.Height);
+
+            statusRect = new RectangleF(targetWidth - PillStyle.PaddingRight - statusWidth, (PillStyle.Height - PillStyle.StatusHeight) / 2,
+                statusWidth, PillStyle.StatusHeight);
+        }
+
+        //top left of the full size layout on the bitmap, the info is centered in the pill as it grows
+        private PointF contentOrigin => new(area.Width / 2f - width / 2, pose.Top + (pose.Height - PillStyle.Height) / 2);
+
+        private RectangleF pillRect => new(area.Width / 2f - pose.Width / 2, pose.Top, pose.Width, pose.Height);
+
+        private void render()
+        {
+            if (area.Width <= 0 || area.Height <= 0) return;
+
+            using var bitmap = new Bitmap(area.Width, area.Height);
+            using (var g = Graphics.FromImage(bitmap))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.TextRenderingHint = TextRenderingHint.AntiAlias;
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.Clear(Color.Transparent);
+
+                if (song != null && pose.Width > 0 && pose.Height > 0)
+                {
+                    drawPill(g);
+                }
+            }
+
+            setLayeredBitmap(bitmap);
+        }
+
+        private void drawPill(Graphics g)
+        {
+            var pill = pillRect;
+            float radius = Math.Min(PillStyle.CornerRadius ?? pose.Height / 2, Math.Min(pose.Width, pose.Height) / 2);
+
+            int shadowAlpha = (int)(PillStyle.ShadowAlpha * pose.Shadow);
+            for (int i = PillStyle.ShadowLayers; i > 0 && shadowAlpha > 0; i--)
+            {
+                var shadow = pill;
+                shadow.Inflate(i, i);
+                shadow.Offset(0, PillStyle.ShadowOffsetY);
+                using var shadowPath = roundedRect(shadow, radius + i);
+                using var shadowBrush = new SolidBrush(Color.FromArgb(shadowAlpha, 0, 0, 0));
+                g.FillPath(shadowBrush, shadowPath);
+            }
+
+            using var path = roundedRect(pill, radius);
+            using (var background = new SolidBrush(lerpColor(PillStyle.Nub, PillStyle.Background, pose.Fill)))
+            {
+                g.FillPath(background, path);
+            }
+            if (pose.Border > 0)
+            {
+                using var border = new Pen(withAlpha(PillStyle.Border, pose.Border), 1f);
+                g.DrawPath(border, path);
+            }
+
+            //info is laid out for the full widget, centered in the current pill and clipped to it
+            var state = g.Save();
+            g.SetClip(path);
+            var origin = contentOrigin;
+            g.TranslateTransform(origin.X, origin.Y);
+
+            drawPiece(g, thumbRect, pose.Thumb, p => drawThumb(g, p));
+            drawPiece(g, titleRect, pose.Title, p => drawText(g, song?.TrackName ?? "", titleFont, PillStyle.Title, titleRect, p));
+            drawPiece(g, artistRect, pose.Artist, p => drawText(g, song?.TrackArtists ?? "", artistFont, PillStyle.Artist, artistRect, p));
+            drawPiece(g, statusRect, pose.Status, p => drawStatus(g, p));
+
+            g.Restore(state);
+        }
+
+        //grows and rises into place while fading in
+        private static void drawPiece(Graphics g, RectangleF rect, float progress, Action<float> draw)
+        {
+            if (progress <= 0) return;
+            var state = g.Save();
+            float scale = PillAnimation.lerp(PillStyle.ContentStartScale, 1, progress);
+            float cx = rect.X + rect.Width / 2, cy = rect.Y + rect.Height / 2;
+            g.TranslateTransform(cx, cy + PillAnimation.lerp(PillStyle.ContentStartOffsetY, 0, progress));
+            g.ScaleTransform(scale, scale);
+            g.TranslateTransform(-cx, -cy);
+            draw(progress);
+            g.Restore(state);
+        }
+
+        private void drawThumb(Graphics g, float opacity)
+        {
+            using var thumbPath = roundedRect(thumbRect, PillStyle.ThumbRadius);
+            if (cover == null)
+            {
+                using var placeholder = new SolidBrush(withAlpha(PillStyle.ThumbPlaceholder, opacity));
+                g.FillPath(placeholder, thumbPath);
+                return;
+            }
+
+            var state = g.Save();
+            g.SetClip(thumbPath, CombineMode.Intersect);
+            using var attributes = new ImageAttributes();
+            attributes.SetColorMatrix(new ColorMatrix { Matrix33 = opacity });
+            g.DrawImage(cover, Rectangle.Round(thumbRect), 0, 0, cover.Width, cover.Height, GraphicsUnit.Pixel, attributes);
+            g.Restore(state);
+        }
+
+        private static void drawText(Graphics g, string text, Font font, Color color, RectangleF rect, float opacity)
+        {
+            using var format = new StringFormat(StringFormatFlags.NoWrap) { Trimming = StringTrimming.EllipsisCharacter };
+            using var brush = new SolidBrush(withAlpha(color, opacity));
+            g.DrawString(text, font, brush, rect, format);
+        }
+
+        private void drawStatus(Graphics g, float opacity)
+        {
+            using (var chipPath = roundedRect(statusRect, statusRect.Height / 2))
+            using (var chipBrush = new SolidBrush(withAlpha(PillStyle.StatusBackground, opacity)))
+            {
+                g.FillPath(chipBrush, chipPath);
+            }
+            var dot = new RectangleF(statusRect.X + PillStyle.StatusPaddingX, statusRect.Y + (statusRect.Height - PillStyle.StatusDotSize) / 2,
+                PillStyle.StatusDotSize, PillStyle.StatusDotSize);
+            using (var dotBrush = new SolidBrush(withAlpha(statusDot, opacity)))
+            {
+                g.FillEllipse(dotBrush, dot);
+            }
+            var textRect = RectangleF.FromLTRB(dot.Right + 5f, statusRect.Y, statusRect.Right, statusRect.Bottom);
+            using var format = new StringFormat(StringFormatFlags.NoWrap) { LineAlignment = StringAlignment.Center };
+            using var brush = new SolidBrush(withAlpha(PillStyle.Title, opacity));
+            g.DrawString(statusText, statusFont, brush, textRect, format);
+        }
+
+        private static Color withAlpha(Color c, float opacity) => Color.FromArgb((int)(c.A * Math.Clamp(opacity, 0f, 1f)), c);
+
+        private static Color lerpColor(Color a, Color b, float p)
+        {
+            p = Math.Clamp(p, 0f, 1f);
+            int mix(int x, int y) => (int)(x + (y - x) * p);
+            return Color.FromArgb(mix(a.A, b.A), mix(a.R, b.R), mix(a.G, b.G), mix(a.B, b.B));
+        }
+
+        private static GraphicsPath roundedRect(RectangleF r, float radius)
+        {
+            float d = Math.Min(radius * 2, Math.Min(r.Width, r.Height));
+            var path = new GraphicsPath();
+            path.AddArc(r.X, r.Y, d, d, 180, 90);
+            path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+            path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+            path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+            path.CloseFigure();
+            return path;
+        }
+
+        private void setLayeredBitmap(Bitmap bitmap)
+        {
+            IntPtr screenDc = NativeMethods.GetDC(IntPtr.Zero);
+            IntPtr memDc = NativeMethods.CreateCompatibleDC(screenDc);
+            IntPtr hBitmap = IntPtr.Zero;
+            IntPtr oldBitmap = IntPtr.Zero;
+
+            try
+            {
+                hBitmap = bitmap.GetHbitmap(Color.FromArgb(0));
+                oldBitmap = NativeMethods.SelectObject(memDc, hBitmap);
+
+                var size = new Size(bitmap.Width, bitmap.Height);
+                var source = new Point(0, 0);
+                var pos = areaPos;
+                var blend = new NativeMethods.BLENDFUNCTION
+                {
+                    BlendOp = NativeMethods.AC_SRC_OVER,
+                    SourceConstantAlpha = 255,
+                    AlphaFormat = NativeMethods.AC_SRC_ALPHA,
+                };
+
+                NativeMethods.UpdateLayeredWindow(Handle, screenDc, ref pos, ref size, memDc, ref source, 0, ref blend, NativeMethods.ULW_ALPHA);
+            }
+            finally
+            {
+                NativeMethods.ReleaseDC(IntPtr.Zero, screenDc);
+                if (hBitmap != IntPtr.Zero)
+                {
+                    NativeMethods.SelectObject(memDc, oldBitmap);
+                    NativeMethods.DeleteObject(hBitmap);
+                }
+                NativeMethods.DeleteDC(memDc);
+            }
+        }
+
+        private static class NativeMethods
+        {
+            public const byte AC_SRC_OVER = 0x00;
+            public const byte AC_SRC_ALPHA = 0x01;
+            public const int ULW_ALPHA = 0x00000002;
+
+            [StructLayout(LayoutKind.Sequential, Pack = 1)]
+            public struct BLENDFUNCTION
+            {
+                public byte BlendOp;
+                public byte BlendFlags;
+                public byte SourceConstantAlpha;
+                public byte AlphaFormat;
+            }
+
+            [DllImport("user32.dll", ExactSpelling = true, SetLastError = true)]
+            public static extern bool UpdateLayeredWindow(IntPtr hwnd, IntPtr hdcDst, ref Point pptDst, ref Size psize, IntPtr hdcSrc, ref Point pptSrc, int crKey, ref BLENDFUNCTION pblend, int dwFlags);
+
+            [DllImport("user32.dll", ExactSpelling = true, SetLastError = true)]
+            public static extern IntPtr GetDC(IntPtr hWnd);
+
+            [DllImport("user32.dll", ExactSpelling = true)]
+            public static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+            [DllImport("gdi32.dll", ExactSpelling = true, SetLastError = true)]
+            public static extern IntPtr CreateCompatibleDC(IntPtr hDC);
+
+            [DllImport("gdi32.dll", ExactSpelling = true, SetLastError = true)]
+            public static extern bool DeleteDC(IntPtr hdc);
+
+            [DllImport("gdi32.dll", ExactSpelling = true)]
+            public static extern IntPtr SelectObject(IntPtr hDC, IntPtr hObject);
+
+            [DllImport("gdi32.dll", ExactSpelling = true, SetLastError = true)]
+            public static extern bool DeleteObject(IntPtr hObject);
+        }
+    }
+}

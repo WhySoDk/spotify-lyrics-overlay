@@ -44,6 +44,9 @@ namespace spotify_lyrics_overlay
         public double CurrentTime { get; set; }
     }
 
+    //lyrics of a song as the song pill shows them
+    internal enum SongLyricsStatus { Loading, Synced, Plain, Instrumental, NotFound, Failed }
+
     internal class LyricsFactory
     {
         private static readonly TimeSpan PlayingPollInterval = TimeSpan.FromSeconds(1.5);
@@ -87,6 +90,11 @@ namespace spotify_lyrics_overlay
         //song from the last Spotify poll, null when nothing is playing
         public PlaybackState? CurrentSong => playbackState;
 
+        //a different song started, not raised again when the same song repeats
+        public event Action<PlaybackState>? SongChanged;
+        // last song SongChanged was raised for, kept while nothing is playing so a paused song doesn't count as new
+        private string? announcedTrackId;
+
         public LyricsFactory()
         {
         }
@@ -105,6 +113,7 @@ namespace spotify_lyrics_overlay
                     // force a fresh poll when the overlay is started again
                     hasPolled = false;
                     statusKey = null;
+                    announcedTrackId = null;
                     delay = InactiveCheckInterval;
                 }
                 else
@@ -201,7 +210,41 @@ namespace spotify_lyrics_overlay
             if (state != null)
             {
                 UpdateLyricsForTrack(state);
+
+                if (state.TrackId != announcedTrackId)
+                {
+                    announcedTrackId = state.TrackId;
+                    SongChanged?.Invoke(state);
+                }
             }
+        }
+
+        //lyrics status of a song, Loading while its lyrics aren't looked up yet
+        public SongLyricsStatus GetLyricsStatus(string? trackId)
+        {
+            if (trackId == null || trackId != lyricsTrackId) return SongLyricsStatus.Loading;
+            if (!lyricsLoaded) return lyricsFailed ? SongLyricsStatus.Failed : SongLyricsStatus.Loading;
+            if (lyrics == null) return SongLyricsStatus.NotFound;
+
+            return GetParsedLyrics().Count > 0 ? SongLyricsStatus.Synced
+                : !string.IsNullOrWhiteSpace(lyrics.PlainLyrics) ? SongLyricsStatus.Plain
+                : lyrics.Instrumental ? SongLyricsStatus.Instrumental
+                : SongLyricsStatus.NotFound;
+        }
+
+        //synced lines of the loaded lyrics, parsed once per lyrics
+        private List<LyricLine> GetParsedLyrics()
+        {
+            if (!ReferenceEquals(parsedLyricsSource, lyrics))
+            {
+                // the Lyricsfile has more timing detail, the LRC lyrics are the fallback (and all older cached songs have)
+                parsedLyrics = lyrics == null ? new List<LyricLine>()
+                    : Lyricsfile.ParseLines(lyrics.Lyricsfile) is { Count: > 0 } lines ? lines
+                    : !string.IsNullOrEmpty(lyrics.SyncLyrics) ? ParseLyrics(lyrics.SyncLyrics)
+                    : new List<LyricLine>();
+                parsedLyricsSource = lyrics;
+            }
+            return parsedLyrics;
         }
 
         //look up the lyrics and album color of the playing song again, skipping every cache.
@@ -367,16 +410,8 @@ namespace spotify_lyrics_overlay
                 return new LyricsView { Message = briefly(track + ":none", "No lyrics found") };
             }
 
-            if (!ReferenceEquals(parsedLyricsSource, lyrics))
-            {
-                // the Lyricsfile has more timing detail, the LRC lyrics are the fallback (and all older cached songs have)
-                parsedLyrics = Lyricsfile.ParseLines(lyrics.Lyricsfile) is { Count: > 0 } lines ? lines
-                    : !string.IsNullOrEmpty(lyrics.SyncLyrics) ? ParseLyrics(lyrics.SyncLyrics)
-                    : new List<LyricLine>();
-                parsedLyricsSource = lyrics;
-            }
-
-            if (parsedLyrics.Count == 0)
+            var syncedLines = GetParsedLyrics();
+            if (syncedLines.Count == 0)
             {
                 string message = !string.IsNullOrWhiteSpace(lyrics.SyncLyrics) ? "(Can't parse lyrics format)"
                     : !string.IsNullOrWhiteSpace(lyrics.PlainLyrics) ? "(Lyrics not sync)"
@@ -387,8 +422,8 @@ namespace spotify_lyrics_overlay
 
             return new LyricsView
             {
-                Lines = parsedLyrics,
-                CurrentIndex = FindCurrentLineIndex(parsedLyrics, currentTime),
+                Lines = syncedLines,
+                CurrentIndex = FindCurrentLineIndex(syncedLines, currentTime),
                 CurrentTime = currentTime
             };
         }

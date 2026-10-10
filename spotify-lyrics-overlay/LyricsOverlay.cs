@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using spotify_lyrics_overlay.Pill;
 using spotify_lyrics_overlay.Transitions;
 
 namespace spotify_lyrics_overlay
@@ -15,6 +16,8 @@ namespace spotify_lyrics_overlay
         private Func<bool> isStartedProvider;
         private System.Windows.Forms.Timer updateTimer;
         private LyricsFactory lyricsFactory = new LyricsFactory();
+        // shows the new song at the top of the screen, animates on its own timer
+        private readonly SongPill songPill;
         private readonly CancellationTokenSource pollingCancellation = new();
         private string lastConfigSnapshot = "";
         private Rectangle screenBounds;
@@ -64,6 +67,12 @@ namespace spotify_lyrics_overlay
             this.isStartedProvider = isStartedProvider;
             initializeOverlay();
 
+            songPill = new SongPill(lyricsFactory);
+            lyricsFactory.SongChanged += song =>
+            {
+                if (ConfigManager.Instance.LoadConfig().songPill) songPill.Play(song, screenBounds);
+            };
+
             RenderLayeredWindow();
             //Spotify is polled in its own loop, the timer only renders the local state
             _ = lyricsFactory.RunPollingAsync(isStartedProvider, pollingCancellation.Token);
@@ -74,6 +83,7 @@ namespace spotify_lyrics_overlay
         {
             pollingCancellation.Cancel();
             updateTimer.Stop();
+            songPill.Close();
             base.OnFormClosed(e);
         }
 
@@ -147,10 +157,12 @@ namespace spotify_lyrics_overlay
 
                     applyConfig();
                     updateLyrics();
+                    if (!ConfigManager.Instance.LoadConfig().songPill) songPill.Dismiss();
                 }
                 else
                 {
                     if (this.Visible) this.Hide();
+                    songPill.Dismiss();
                 }
             };
             updateTimer.Start();

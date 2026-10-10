@@ -258,6 +258,8 @@
                             ToolTip="Pick the lrclib record of the playing song yourself, it replaces the cached lyrics" />
                     <Button Content="Paste synced lyrics..." HorizontalAlignment="Stretch" Margin="0,0,0,12" Click="pasteLyricsButton_Click"
                             ToolTip="Paste LRC lyrics, e.g. from lyricsify, for the playing song, they replace the cached lyrics" />
+                    <CheckBox x:Name="songPillCheckBox" Content="Show the song when it changes" Margin="0,0,0,8" Click="setting_Changed"
+                              ToolTip="A pill with the cover, title, artist and lyrics status pops out of the top of the screen" />
                     <CheckBox x:Name="debugCheckBox" Content="Show debug info" Click="setting_Changed"
                               ToolTip="Shows which lyrics lookup step is running above the lyrics" />
                     <CheckBox x:Name="debugCacheHitsCheckBox" Content="Also show cache hits" Margin="28,8,0,0" Click="setting_Changed"
