@@ -17,6 +17,8 @@ namespace spotify_lyrics_overlay.Pill
         // animation time, see PillAnimation
         private float animMs;
         private PillPose pose;
+        // since the song changed on the pill that was already up, -1 when not swapping
+        private float swapMs = -1;
 
         // picked per song, Prompt for Thai
         private Font titleFont = new(PillStyle.FontName, PillStyle.TitleSize, FontStyle.Bold);
@@ -93,7 +95,8 @@ namespace spotify_lyrics_overlay.Pill
             }
         }
 
-        //start the animation for a song on the given screen, from the beginning if one is running.
+        //start the animation for a song on the given screen. a pill that's still up shows the new song in place
+        //and stays up longer, so skipping through songs doesn't replay the intro each time.
         //the song already shown from the Windows media info is just filled in
         public void Play(PlaybackState newSong, Rectangle screenBounds)
         {
@@ -139,23 +142,41 @@ namespace spotify_lyrics_overlay.Pill
 
         private void start(PlaybackState newSong, Rectangle screenBounds)
         {
+            var newArea = new Size((int)(PillStyle.MaxWidth * 1.3f) + 40, (int)(PillStyle.RestTop + PillStyle.Height * 1.5f) + 40);
+            var newAreaPos = new Point(screenBounds.X + (screenBounds.Width - newArea.Width) / 2, screenBounds.Y);
+            // once it's shrinking back to the nub it's too late, it starts over
+            bool swap = song != null && Visible && animMs < PillAnimation.CollapseAt && newAreaPos == areaPos;
+
             playId++;
             early = false;
             song = newSong;
             cover?.Dispose();
             cover = null;
             status = null;
+            createFonts(newSong);
+
+            if (swap)
+            {
+                // the cursor may still be on the pill, hover is kept. shown again for the full time from here
+                chipHovered = false;
+                Cursor = Cursors.Default;
+                updateStatus();
+                animMs = Math.Min(animMs, PillAnimation.SettledAt);
+                marqueeMs = 0;
+                swapMs = 0;
+                return;
+            }
+
             hovered = chipHovered = false;
             sinceHover.Reset();
             setClickThrough(true);
 
-            createFonts(newSong);
-
-            area = new Size((int)(PillStyle.MaxWidth * 1.3f) + 40, (int)(PillStyle.RestTop + PillStyle.Height * 1.5f) + 40);
-            areaPos = new Point(screenBounds.X + (screenBounds.Width - area.Width) / 2, screenBounds.Y);
+            area = newArea;
+            areaPos = newAreaPos;
             Bounds = new Rectangle(areaPos, area);
 
             updateStatus();
+            swapMs = -1;
             width = targetWidth;
             animMs = 0;
             marqueeMs = 0;
@@ -246,6 +267,12 @@ namespace spotify_lyrics_overlay.Pill
             width += (targetWidth - width) * (1 - MathF.Exp(-dt / 1000f / PillStyle.WidthSmoothingSeconds));
 
             pose = PillAnimation.At(animMs, width);
+            if (swapMs >= 0)
+            {
+                swapMs += dt;
+                pose = PillAnimation.Swapped(pose, swapMs);
+                if (swapMs >= PillAnimation.SwapMs) swapMs = -1;
+            }
             render();
         }
 

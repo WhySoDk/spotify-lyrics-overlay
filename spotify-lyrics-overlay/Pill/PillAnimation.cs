@@ -95,6 +95,21 @@ namespace spotify_lyrics_overlay.Pill
             };
         }
 
+        public static float SwapMs => 3 * PillStyle.StaggerMs + PillStyle.ContentFadeMs;
+
+        //the next song's info fading in on the pill that's already up, ms since the song changed
+        public static PillPose Swapped(PillPose pose, float ms)
+        {
+            pose.Thumb *= swapReveal(ms, 0);
+            pose.Title *= swapReveal(ms, 1);
+            pose.Artist *= swapReveal(ms, 2);
+            pose.Status *= swapReveal(ms, 3);
+            return pose;
+        }
+
+        static float swapReveal(float ms, int index) =>
+            easeOutCubic(clamp01((ms - index * PillStyle.StaggerMs) / PillStyle.ContentFadeMs));
+
         static float reveal(float ms, int index) =>
             easeOutCubic(clamp01((ms - contentAt - index * PillStyle.StaggerMs) / PillStyle.ContentFadeMs));
 
