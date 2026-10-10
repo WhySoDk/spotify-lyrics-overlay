@@ -3,7 +3,7 @@ using Microsoft.Data.Sqlite;
 
 namespace spotify_lyrics_overlay
 {
-    //local cache database (lyrics_cache/cache.db) for lyrics and album colors.
+    //local cache database (lyrics_cache/cache.db) for lyrics, album colors and album covers.
     //the old cache (one json file per song) is imported the first time it's opened
     internal static class CacheDb
     {
@@ -53,6 +53,12 @@ namespace spotify_lyrics_overlay
                 CREATE TABLE IF NOT EXISTS album_colors (
                     url TEXT PRIMARY KEY,
                     color TEXT NOT NULL
+                );
+
+                -- cover image file by url, Spotify cover urls never change their image
+                CREATE TABLE IF NOT EXISTS covers (
+                    url TEXT PRIMARY KEY,
+                    image BLOB NOT NULL
                 );
                 """);
 
@@ -175,6 +181,28 @@ namespace spotify_lyrics_overlay
             command.CommandText = $"INSERT OR {(replace ? "REPLACE" : "IGNORE")} INTO album_colors (url, color) VALUES ($url, $color)";
             command.Parameters.AddWithValue("$url", url);
             command.Parameters.AddWithValue("$color", color);
+            command.ExecuteNonQuery();
+        }
+
+        // ---------- album covers ----------
+
+        //null when the cover isn't cached
+        public static byte[]? ReadCover(string url)
+        {
+            using var connection = connect();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT image FROM covers WHERE url = $url";
+            command.Parameters.AddWithValue("$url", url);
+            return command.ExecuteScalar() as byte[];
+        }
+
+        public static void WriteCover(string url, byte[] image)
+        {
+            using var connection = connect();
+            using var command = connection.CreateCommand();
+            command.CommandText = "INSERT OR REPLACE INTO covers (url, image) VALUES ($url, $image)";
+            command.Parameters.AddWithValue("$url", url);
+            command.Parameters.AddWithValue("$image", image);
             command.ExecuteNonQuery();
         }
 

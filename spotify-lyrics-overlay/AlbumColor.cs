@@ -6,8 +6,6 @@ namespace spotify_lyrics_overlay
     //that is neither too dark nor too white
     internal static class AlbumColor
     {
-        private static readonly HttpClient httpClient = new() { Timeout = TimeSpan.FromSeconds(10) };
-
         // picked colors are cached by cover url in CacheDb ("" when the cover has no usable color),
         // kept apart from the lyrics so it doesn't wait for them, songs of one album share it
 
@@ -33,7 +31,7 @@ namespace spotify_lyrics_overlay
 
             try
             {
-                var bytes = await httpClient.GetByteArrayAsync(url);
+                var bytes = await AlbumCover.GetBytesAsync(url);
                 // decoding and the palette run on a worker thread so the overlay keeps animating
                 var color = await Task.Run(() =>
                 {
