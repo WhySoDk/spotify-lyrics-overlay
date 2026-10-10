@@ -206,7 +206,24 @@ namespace spotify_lyrics_overlay.Pill
                 return;
             }
             cover?.Dispose();
-            cover = bitmap;
+            cover = scaleToThumb(bitmap);
+        }
+
+        //the cover shrunk once to the thumb size, a texture brush would sample the full size cover roughly every frame
+        private static Bitmap scaleToThumb(Bitmap bitmap)
+        {
+            int size = (int)Math.Ceiling(PillStyle.ThumbSize);
+            var scaled = new Bitmap(size, size, PixelFormat.Format32bppArgb);
+            using (var g = Graphics.FromImage(scaled))
+            using (var attributes = new ImageAttributes())
+            {
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                attributes.SetWrapMode(WrapMode.TileFlipXY);
+                g.DrawImage(bitmap, new Rectangle(0, 0, size, size), 0, 0, bitmap.Width, bitmap.Height, GraphicsUnit.Pixel, attributes);
+            }
+            bitmap.Dispose();
+            return scaled;
         }
 
         private void tick()
@@ -439,12 +456,13 @@ namespace spotify_lyrics_overlay.Pill
                 return;
             }
 
-            var state = g.Save();
-            g.SetClip(thumbPath, CombineMode.Intersect);
+            // filled with a texture instead of clipped, clipping isn't anti-aliased and leaves the circle jagged
             using var attributes = new ImageAttributes();
             attributes.SetColorMatrix(new ColorMatrix { Matrix33 = opacity });
-            g.DrawImage(cover, Rectangle.Round(thumbRect), 0, 0, cover.Width, cover.Height, GraphicsUnit.Pixel, attributes);
-            g.Restore(state);
+            using var brush = new TextureBrush(cover, new Rectangle(0, 0, cover.Width, cover.Height), attributes) { WrapMode = WrapMode.Clamp };
+            brush.TranslateTransform(thumbRect.X, thumbRect.Y);
+            brush.ScaleTransform(thumbRect.Width / cover.Width, thumbRect.Height / cover.Height);
+            g.FillPath(brush, thumbPath);
         }
 
         private bool titleScrolls => titleWidth > titleRect.Width;
