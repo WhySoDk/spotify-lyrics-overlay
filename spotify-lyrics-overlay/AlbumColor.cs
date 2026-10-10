@@ -106,11 +106,10 @@ namespace spotify_lyrics_overlay
             return 0.299 * color.R + 0.587 * color.G + 0.114 * color.B > threshold;
         }
 
-        //brightness weights are biased toward blue on purpose
         private static float saturationTimesBrightness(Color color)
         {
             float saturation = ColorHelper.ToHsv(color).saturation;
-            return saturation * (0.200f * color.R + 0.400f * color.G + 0.229f * color.B);
+            return saturation * (0.299f * color.R + 0.587f * color.G + 0.114f * color.B);
         }
     }
 
