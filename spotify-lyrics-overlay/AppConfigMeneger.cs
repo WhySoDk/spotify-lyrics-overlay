@@ -43,6 +43,7 @@ namespace spotify_lyrics_overlay
                     backgroundSpread = 12,
                     transitionMode = Transitions.LyricsTransitions.DefaultId,
                     songPill = true,
+                    songPillWindowsMedia = false,
                     debugEnabled = false,
                     debugShowCacheHits = true
                 };

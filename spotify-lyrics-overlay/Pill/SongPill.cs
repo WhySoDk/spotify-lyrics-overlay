@@ -27,6 +27,12 @@ namespace spotify_lyrics_overlay.Pill
         // song on the pill, null while hidden
         private PlaybackState? song;
         private Bitmap? cover;
+        // counts Play / PlayEarly calls, a cover that finishes loading for an older one is dropped
+        private int playId;
+        // shown from the Windows media info, Spotify's answer takes it over without starting again
+        private bool early;
+        private readonly Stopwatch sinceEarly = new();
+        private static readonly TimeSpan EarlyTakeOver = TimeSpan.FromSeconds(10);
         private SongLyricsStatus? status;
         private bool setByHand;
         private string statusText = "";
@@ -87,9 +93,54 @@ namespace spotify_lyrics_overlay.Pill
             }
         }
 
-        //start the animation for a song on the given screen, from the beginning if one is running
+        //start the animation for a song on the given screen, from the beginning if one is running.
+        //the song already shown from the Windows media info is just filled in
         public void Play(PlaybackState newSong, Rectangle screenBounds)
         {
+            if (early && sinceEarly.Elapsed < EarlyTakeOver)
+            {
+                takeOver(newSong);
+                return;
+            }
+            start(newSong, screenBounds);
+            _ = loadCoverAsync(newSong, playId);
+        }
+
+        //show the song Windows saw right away, before Spotify confirms it
+        public void PlayEarly(MediaTrack track, Rectangle screenBounds)
+        {
+            start(new PlaybackState { TrackName = track.Title, TrackArtists = track.Artist }, screenBounds);
+            early = true;
+            sinceEarly.Restart();
+            _ = setCoverAsync(track.LoadThumbnailAsync(), playId);
+        }
+
+        //Spotify's answer for the song shown early: its title and artist win, the animation carries on
+        private void takeOver(PlaybackState newSong)
+        {
+            early = false;
+            if (song == null) return;
+
+            bool renamed = newSong.TrackName != song.TrackName || newSong.TrackArtists != song.TrackArtists;
+            song = newSong;
+            if (renamed) createFonts(newSong);
+            status = null;
+            updateStatus();
+            if (cover == null) _ = loadCoverAsync(newSong, playId);
+        }
+
+        private void createFonts(PlaybackState forSong)
+        {
+            titleFont.Dispose();
+            artistFont.Dispose();
+            titleFont = PillFonts.Create(forSong.TrackName ?? "", PillStyle.TitleSize, FontStyle.Bold);
+            artistFont = PillFonts.Create(forSong.TrackArtists ?? "", PillStyle.ArtistSize, FontStyle.Regular);
+        }
+
+        private void start(PlaybackState newSong, Rectangle screenBounds)
+        {
+            playId++;
+            early = false;
             song = newSong;
             cover?.Dispose();
             cover = null;
@@ -98,10 +149,7 @@ namespace spotify_lyrics_overlay.Pill
             sinceHover.Reset();
             setClickThrough(true);
 
-            titleFont.Dispose();
-            artistFont.Dispose();
-            titleFont = PillFonts.Create(newSong.TrackName ?? "", PillStyle.TitleSize, FontStyle.Bold);
-            artistFont = PillFonts.Create(newSong.TrackArtists ?? "", PillStyle.ArtistSize, FontStyle.Regular);
+            createFonts(newSong);
 
             area = new Size((int)(PillStyle.MaxWidth * 1.3f) + 40, (int)(PillStyle.RestTop + PillStyle.Height * 1.5f) + 40);
             areaPos = new Point(screenBounds.X + (screenBounds.Width - area.Width) / 2, screenBounds.Y);
@@ -112,7 +160,6 @@ namespace spotify_lyrics_overlay.Pill
             animMs = 0;
             marqueeMs = 0;
             pose = PillAnimation.At(0, width);
-            _ = loadCoverAsync(newSong);
 
             render();
             if (!Visible) Show();
@@ -122,6 +169,13 @@ namespace spotify_lyrics_overlay.Pill
 
         //hide right away, e.g. when the overlay is stopped
         public void Dismiss()
+        {
+            early = false;
+            finish();
+        }
+
+        //the early song can still be taken over after this, so Spotify's late answer doesn't show it again
+        private void finish()
         {
             if (song == null) return;
             song = null;
@@ -137,16 +191,21 @@ namespace spotify_lyrics_overlay.Pill
             base.OnFormClosed(e);
         }
 
-        private async Task loadCoverAsync(PlaybackState forSong)
+        private Task loadCoverAsync(PlaybackState forSong, int forPlay)
         {
-            if (forSong.AlbumImageUrl == null) return;
-            var bitmap = await AlbumCover.LoadAsync(forSong.AlbumImageUrl);
+            return forSong.AlbumImageUrl == null ? Task.CompletedTask : setCoverAsync(AlbumCover.LoadAsync(forSong.AlbumImageUrl), forPlay);
+        }
+
+        private async Task setCoverAsync(Task<Bitmap?> loading, int forPlay)
+        {
+            var bitmap = await loading;
             // the next song may have started while loading
-            if (!ReferenceEquals(song, forSong))
+            if (forPlay != playId || song == null || bitmap == null)
             {
                 bitmap?.Dispose();
                 return;
             }
+            cover?.Dispose();
             cover = bitmap;
         }
 
@@ -162,7 +221,7 @@ namespace spotify_lyrics_overlay.Pill
             animMs = advance(animMs, dt);
             if (animMs >= PillAnimation.TotalMs)
             {
-                Dismiss();
+                finish();
                 return;
             }
 

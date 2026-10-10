@@ -90,6 +90,7 @@ namespace spotify_lyrics_overlay
 
                 transitionComboBox.SelectedIndex = LyricsTransitions.IndexOf(config.transitionMode);
                 songPillCheckBox.IsChecked = config.songPill;
+                songPillWindowsMediaCheckBox.IsChecked = config.songPillWindowsMedia;
 
                 debugCheckBox.IsChecked = config.debugEnabled;
                 debugCacheHitsCheckBox.IsChecked = config.debugShowCacheHits;
@@ -286,6 +287,7 @@ namespace spotify_lyrics_overlay
             }
 
             config.songPill = songPillCheckBox.IsChecked == true;
+            config.songPillWindowsMedia = songPillWindowsMediaCheckBox.IsChecked == true;
 
             config.debugEnabled = debugCheckBox.IsChecked == true;
             config.debugShowCacheHits = debugCacheHitsCheckBox.IsChecked == true;

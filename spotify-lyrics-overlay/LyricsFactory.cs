@@ -101,6 +101,8 @@ namespace spotify_lyrics_overlay
 
         //a different song started, not raised again when the same song repeats
         public event Action<PlaybackState>? SongChanged;
+        //Windows saw the song change, comes before SongChanged (once Spotify confirms the song)
+        public event Action<MediaTrack>? MediaTrackChanged;
         // last song SongChanged was raised for, kept while nothing is playing so a paused song doesn't count as new
         private string? announcedTrackId;
 
@@ -113,7 +115,11 @@ namespace spotify_lyrics_overlay
         {
             TimeSpan backoff = TimeSpan.Zero;
 
-            mediaWatcher.TrackChanged += track => RequestPoll(newTrack: true);
+            mediaWatcher.TrackChanged += track =>
+            {
+                RequestPoll(newTrack: true);
+                MediaTrackChanged?.Invoke(track);
+            };
             mediaWatcher.PlaybackChanged += () => RequestPoll(newTrack: false);
             await mediaWatcher.StartAsync();
 

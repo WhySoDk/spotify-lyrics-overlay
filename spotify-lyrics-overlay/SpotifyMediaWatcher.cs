@@ -1,9 +1,33 @@
 using Windows.Media.Control;
+using Windows.Storage.Streams;
 
 namespace spotify_lyrics_overlay
 {
-    //title and artist as the Windows media info has them
-    internal record MediaTrack(string Title, string Artist);
+    //song as the Windows media info has it
+    internal record MediaTrack(string Title, string Artist, IRandomAccessStreamReference? Thumbnail)
+    {
+        public bool SameSong(MediaTrack? other) => other != null && other.Title == Title && other.Artist == Artist;
+
+        //cover from the media info, null when there is none or it can't be read
+        public async Task<Bitmap?> LoadThumbnailAsync()
+        {
+            if (Thumbnail == null) return null;
+            try
+            {
+                using var stream = await Thumbnail.OpenReadAsync();
+                var copy = new MemoryStream();
+                await stream.AsStreamForRead().CopyToAsync(copy);
+                copy.Position = 0;
+                using var image = Image.FromStream(copy);
+                return new Bitmap(image);
+            }
+            catch (Exception ex)
+            {
+                Log.Write($"Error reading the Windows media cover: {ex.Message}");
+                return null;
+            }
+        }
+    }
 
     //watches Spotify's Windows media session (the one the media keys popup shows), every other player is ignored.
     //Windows tells right away when the song changes or pauses, the Spotify API is only polled every 1.5s.
@@ -87,10 +111,10 @@ namespace spotify_lyrics_overlay
                 var properties = await sender.TryGetMediaPropertiesAsync();
                 if (properties == null || string.IsNullOrWhiteSpace(properties.Title)) return;
 
-                var track = new MediaTrack(properties.Title, properties.Artist ?? "");
+                var track = new MediaTrack(properties.Title, properties.Artist ?? "", properties.Thumbnail);
                 lock (sync)
                 {
-                    if (session == null || track == lastTrack) return;
+                    if (session == null || track.SameSong(lastTrack)) return;
                     lastTrack = track;
                 }
                 post(() => TrackChanged?.Invoke(track));

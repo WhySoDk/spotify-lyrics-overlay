@@ -72,6 +72,11 @@ namespace spotify_lyrics_overlay
             {
                 if (ConfigManager.Instance.LoadConfig().songPill) songPill.Play(song, screenBounds);
             };
+            lyricsFactory.MediaTrackChanged += track =>
+            {
+                var config = ConfigManager.Instance.LoadConfig();
+                if (isStartedProvider() && config.songPill && config.songPillWindowsMedia) songPill.PlayEarly(track, screenBounds);
+            };
 
             RenderLayeredWindow();
             //Spotify is polled in its own loop, the timer only renders the local state
