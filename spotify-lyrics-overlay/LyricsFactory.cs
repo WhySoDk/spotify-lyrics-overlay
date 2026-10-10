@@ -134,6 +134,15 @@ namespace spotify_lyrics_overlay
                             : TimeSpan.FromTicks(Math.Min(backoff.Ticks * 2, MaxBackoff.Ticks));
                         delay = backoff;
                         Log.Write($"Error polling Spotify, retrying in {delay.TotalSeconds}s: {ex.GetType().Name}: {ex.Message}");
+
+                        // the login was revoked or the refresh token stopped working,
+                        // connect from scratch so the user is asked to log in again
+                        if (IsLoginRejected(ex))
+                        {
+                            Log.Write("Spotify rejected the login, connecting again");
+                            spotify = null;
+                            SpotifyConnector.Reset();
+                        }
                     }
                 }
 
@@ -146,6 +155,13 @@ namespace spotify_lyrics_overlay
                     break;
                 }
             }
+        }
+
+        //401 from the API, or 400 (invalid_grant) when the token refresh is refused
+        private static bool IsLoginRejected(Exception ex)
+        {
+            return ex is APIUnauthorizedException
+                || (ex is APIException api && api.Response?.StatusCode == System.Net.HttpStatusCode.BadRequest);
         }
 
         private async Task PollPlaybackAsync(CancellationToken cancellationToken)

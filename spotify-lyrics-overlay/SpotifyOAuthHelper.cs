@@ -37,6 +37,15 @@ public class SpotifyConnector
         }
     }
 
+    //forget the client, the next GetClientAsync refreshes the token or logs in again
+    public static void Reset()
+    {
+        lock (sync)
+        {
+            clientTask = null;
+        }
+    }
+
     private static async Task<SpotifyClient> ConnectAsyncInternal()
     {
         try
