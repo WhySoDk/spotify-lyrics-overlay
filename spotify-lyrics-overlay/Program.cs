@@ -10,6 +10,15 @@ namespace spotify_lyrics_overlay
         {
             ApplicationConfiguration.Initialize();
 
+            // a second copy would fight over token.json and the login callback port
+            using var instanceMutex = new Mutex(true, @"Local\SpotifyLyricsOverlay", out bool isFirstInstance);
+            if (!isFirstInstance)
+            {
+                MessageBox.Show("Spotify Lyrics Overlay is already running.", "Spotify Lyrics Overlay",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
             var app = new System.Windows.Application();
             Log.CatchUnhandled(app);
             Log.Write($"Starting v{typeof(Program).Assembly.GetName().Version?.ToString(3)}");
