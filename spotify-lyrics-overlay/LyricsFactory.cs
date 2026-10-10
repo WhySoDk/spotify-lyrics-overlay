@@ -56,6 +56,9 @@ namespace spotify_lyrics_overlay
         private static readonly TimeSpan MaxBackoff = TimeSpan.FromSeconds(30);
         private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(5);
         private static readonly TimeSpan StatusDuration = TimeSpan.FromSeconds(5);
+        // after Windows says the song changed, Spotify's API can still have the old one for a moment
+        private static readonly TimeSpan NewTrackRetryInterval = TimeSpan.FromMilliseconds(300);
+        private const int NewTrackRetries = 3;
 
         private SpotifyClient? spotify;
 
@@ -65,6 +68,12 @@ namespace spotify_lyrics_overlay
         private bool hasPolled;
         private bool spotifyFailed;
         private readonly Stopwatch sincePoll = new();
+
+        // Spotify's Windows media info, wakes the polling loop as soon as the song changes or pauses
+        private readonly SpotifyMediaWatcher mediaWatcher = new();
+        private readonly SemaphoreSlim pollNow = new(0, 1);
+        private int newTrackRetriesLeft;
+        private string? trackIdBeforeChange;
 
         private string? lyricsTrackId;
         private bool lyricsLoaded;
@@ -104,6 +113,10 @@ namespace spotify_lyrics_overlay
         {
             TimeSpan backoff = TimeSpan.Zero;
 
+            mediaWatcher.TrackChanged += track => RequestPoll(newTrack: true);
+            mediaWatcher.PlaybackChanged += () => RequestPoll(newTrack: false);
+            await mediaWatcher.StartAsync();
+
             while (!cancellationToken.IsCancellationRequested)
             {
                 TimeSpan delay;
@@ -124,6 +137,19 @@ namespace spotify_lyrics_overlay
                         spotifyFailed = false;
                         backoff = TimeSpan.Zero;
                         delay = GetNextPollDelay();
+
+                        if (newTrackRetriesLeft > 0)
+                        {
+                            if (playbackState?.TrackId == trackIdBeforeChange)
+                            {
+                                newTrackRetriesLeft--;
+                                delay = NewTrackRetryInterval;
+                            }
+                            else
+                            {
+                                newTrackRetriesLeft = 0;
+                            }
+                        }
                     }
                     catch (APITooManyRequestsException ex)
                     {
@@ -157,13 +183,25 @@ namespace spotify_lyrics_overlay
 
                 try
                 {
-                    await Task.Delay(delay, cancellationToken);
+                    // RequestPoll ends the wait early
+                    await pollNow.WaitAsync(delay, cancellationToken);
                 }
                 catch (OperationCanceledException)
                 {
                     break;
                 }
             }
+        }
+
+        //poll Spotify now instead of waiting for the next poll, newTrack when the song changed
+        private void RequestPoll(bool newTrack)
+        {
+            if (newTrack)
+            {
+                newTrackRetriesLeft = NewTrackRetries;
+                trackIdBeforeChange = playbackState?.TrackId;
+            }
+            if (pollNow.CurrentCount == 0) pollNow.Release();
         }
 
         //401 from the API, or 400 (invalid_grant) when the token refresh is refused
