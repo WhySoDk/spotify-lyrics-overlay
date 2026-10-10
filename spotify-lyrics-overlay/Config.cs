@@ -1,5 +1,7 @@
 namespace spotify_lyrics_overlay
 {
+    public record ScreenLayout(int fontSize, int xOffset, int yOffset);
+
     public class AppConfig
     {
         public Boolean newlyGenerated { get; set; }
@@ -15,6 +17,8 @@ namespace spotify_lyrics_overlay
         public String screenName { get; set; } = "";
         public int xOffset { get; set; }
         public int yOffset { get; set; }
+        // font size and offsets last used on each screen size, keyed like "1920x1080"
+        public Dictionary<String, ScreenLayout> screenLayouts { get; set; } = new();
         public String apiKey { get; set; } = "";
         public Boolean rememberApiKey { get; set; }
         // start the overlay on launch when it was running the last time the app closed
@@ -33,7 +37,7 @@ namespace spotify_lyrics_overlay
         {
             return $"AppConfig(newlyGenerated: {newlyGenerated}, fontName: {fontName}, secondaryFontName: {secondaryFontName}, fontSize: {fontSize}, " +
                    $"bold: {bold}, italic: {italic}, dropShadow: {dropShadow}, fontColorHex: {fontColorHex}, albumColor: {albumColor}, " +
-                   $"screenName: {screenName}, xOffset: {xOffset}, yOffset: {yOffset}, apiKey: {apiKey}, rememberApiKey: {rememberApiKey}, " +
+                   $"screenName: {screenName}, xOffset: {xOffset}, yOffset: {yOffset}, screenLayouts: {screenLayouts.Count}, apiKey: {apiKey}, rememberApiKey: {rememberApiKey}, " +
                    $"rememberRunState: {rememberRunState}, wasStarted: {wasStarted}, " +
                    $"backgroundEnabled: {backgroundEnabled}, backgroundColorHex: {backgroundColorHex}, backgroundOpacity: {backgroundOpacity}, backgroundSpread: {backgroundSpread}, transitionMode: {transitionMode}, " +
                    $"debugEnabled: {debugEnabled}, debugShowCacheHits: {debugShowCacheHits})";

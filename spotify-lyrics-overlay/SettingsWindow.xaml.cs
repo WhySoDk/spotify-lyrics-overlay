@@ -157,8 +157,26 @@ namespace spotify_lyrics_overlay
 
         private void monitorComboBox_SelectionChanged(object sender, EventArgs e)
         {
+            // the boxes change one by one, don't save the half switched values under the new screen size
+            bool wasInitializing = isInitializing;
+            isInitializing = true;
             applyOffsetLimits();
+            restoreScreenLayout();
+            isInitializing = wasInitializing;
             updateConfig();
+        }
+
+        private static string screenKey(Screen screen) => $"{screen.Bounds.Width}x{screen.Bounds.Height}";
+
+        //puts back the font size and offsets last used on a screen of this size
+        private void restoreScreenLayout()
+        {
+            if (monitorComboBox.SelectedItem is not MonitorItem monitor) return;
+            if (!ConfigManager.Instance.LoadConfig().screenLayouts.TryGetValue(screenKey(monitor.Screen), out var layout)) return;
+
+            fontSizeBox.Value = layout.fontSize;
+            xOffsetBox.Value = layout.xOffset;
+            yOffsetBox.Value = layout.yOffset;
         }
 
         private void backgroundOpacitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -242,6 +260,10 @@ namespace spotify_lyrics_overlay
             }
             config.xOffset = xOffsetBox.Value;
             config.yOffset = yOffsetBox.Value;
+            if (monitorComboBox.SelectedItem is MonitorItem layoutMonitor)
+            {
+                config.screenLayouts[screenKey(layoutMonitor.Screen)] = new ScreenLayout(config.fontSize, config.xOffset, config.yOffset);
+            }
 
             config.fontColorHex = ColorHelper.ToHex(fontColor);
             config.albumColor = albumColorCheckBox.IsChecked == true;
