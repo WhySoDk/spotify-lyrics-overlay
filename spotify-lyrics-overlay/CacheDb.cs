@@ -63,7 +63,19 @@ namespace spotify_lyrics_overlay
                 """);
 
             importOldCache(connection);
+            migrate(connection);
             return cs;
+        }
+
+        //one time changes to the cache, the step reached is kept in user_version
+        private static void migrate(SqliteConnection connection)
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA user_version";
+            long version = (long)command.ExecuteScalar()!;
+
+            // colors picked before the blue bias was removed are picked again
+            if (version < 1) execute(connection, "DELETE FROM album_colors; PRAGMA user_version = 1;");
         }
 
         // ---------- lyrics ----------
