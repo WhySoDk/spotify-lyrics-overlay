@@ -18,6 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="spotify-lyrics-overlay.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="SpotifyAPI.Web" Version="7.2.1" />
     <PackageReference Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>

@@ -5,6 +5,8 @@ VisualStudioVersion = 17.12.35527.113 d17.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "spotify-lyrics-overlay", "spotify-lyrics-overlay\spotify-lyrics-overlay.csproj", "{289E5967-C207-4BDE-82D7-0D141DD01D20}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "spotify-lyrics-overlay.Tests", "spotify-lyrics-overlay.Tests\spotify-lyrics-overlay.Tests.csproj", "{F79613C3-D461-4123-A651-C947E1DDE52D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{289E5967-C207-4BDE-82D7-0D141DD01D20}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{289E5967-C207-4BDE-82D7-0D141DD01D20}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{289E5967-C207-4BDE-82D7-0D141DD01D20}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F79613C3-D461-4123-A651-C947E1DDE52D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F79613C3-D461-4123-A651-C947E1DDE52D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F79613C3-D461-4123-A651-C947E1DDE52D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F79613C3-D461-4123-A651-C947E1DDE52D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
