@@ -141,3 +141,6 @@ _NCrunch*
 
 # built by build.cmd, published through GitHub Releases
 release/
+
+# local prototype for the song change pill
+pillPrototype/
