@@ -102,6 +102,16 @@ namespace spotify_lyrics_overlay.Pill
         //vertical gap between title and artist
         public const float LineGap = -1f;
 
+        //a title too long for the pill scrolls: waits, scrolls by one title plus the gap, repeats
+        public const int MarqueeDelayMs = 900;
+        //px per second
+        public const float MarqueeSpeed = 70f;
+        public const float MarqueeGap = 40f;
+        //px of fade at the edges
+        public const float MarqueeFade = 18f;
+        //the pill stays until the title scrolled through once, but no longer than this past its usual time
+        public const int MarqueeMaxHoldMs = 10000;
+
         //lyrics status chip on the right
         public const float StatusGap = 14f;
         public const float StatusSize = 8.5f;

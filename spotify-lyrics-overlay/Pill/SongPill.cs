@@ -47,6 +47,10 @@ namespace spotify_lyrics_overlay.Pill
         private float targetWidth;
         private float width;
         private RectangleF thumbRect, titleRect, artistRect, statusRect;
+        // full width of the title, it scrolls when wider than titleRect
+        private float titleWidth;
+        // marquee time, runs from when the pill is in place, also while it's held
+        private float marqueeMs;
 
         public SongPill(LyricsFactory lyrics)
         {
@@ -100,6 +104,7 @@ namespace spotify_lyrics_overlay.Pill
             updateStatus();
             width = targetWidth;
             animMs = 0;
+            marqueeMs = 0;
             pose = PillAnimation.At(0, width);
             _ = loadCoverAsync(newSong);
 
@@ -147,6 +152,7 @@ namespace spotify_lyrics_overlay.Pill
             frameClock.Restart();
 
             updateHover();
+            if (animMs >= PillAnimation.SettledAt) marqueeMs += dt;
             animMs = advance(animMs, dt);
             if (animMs >= PillAnimation.TotalMs)
             {
@@ -165,7 +171,8 @@ namespace spotify_lyrics_overlay.Pill
         //hovering while the info fades out brings it back
         private float advance(float ms, float dt)
         {
-            bool holding = hovered || (sinceHover.IsRunning && sinceHover.ElapsedMilliseconds < PillStyle.HoverGraceMs);
+            bool holding = hovered || (sinceHover.IsRunning && sinceHover.ElapsedMilliseconds < PillStyle.HoverGraceMs)
+                || (titleScrolls && marqueeMs < marqueeCycleMs && marqueeMs < PillStyle.MarqueeMaxHoldMs);
             if (!holding || ms < PillAnimation.SettledAt || ms >= PillAnimation.CollapseAt) return ms + dt;
             return ms > PillAnimation.ExitAt ? Math.Max(PillAnimation.ExitAt, ms - dt) : ms;
         }
@@ -251,6 +258,7 @@ namespace spotify_lyrics_overlay.Pill
             string title = song?.TrackName ?? "";
             string artist = song?.TrackArtists ?? "";
             var titleSize = measureGraphics.MeasureString(title, titleFont);
+            titleWidth = titleSize.Width;
             var artistSize = measureGraphics.MeasureString(artist, artistFont);
             var statusTextSize = measureGraphics.MeasureString(statusText, statusFont);
 
@@ -331,7 +339,11 @@ namespace spotify_lyrics_overlay.Pill
             g.TranslateTransform(origin.X, origin.Y);
 
             drawPiece(g, thumbRect, pose.Thumb, p => drawThumb(g, p));
-            drawPiece(g, titleRect, pose.Title, p => drawText(g, song?.TrackName ?? "", titleFont, PillStyle.Title, titleRect, p));
+            drawPiece(g, titleRect, pose.Title, p =>
+            {
+                if (titleScrolls) drawMarquee(g, song?.TrackName ?? "", p);
+                else drawText(g, song?.TrackName ?? "", titleFont, PillStyle.Title, titleRect, p);
+            });
             drawPiece(g, artistRect, pose.Artist, p => drawText(g, song?.TrackArtists ?? "", artistFont, PillStyle.Artist, artistRect, p));
             drawPiece(g, statusRect, pose.Status, p => drawStatus(g, p));
 
@@ -368,6 +380,64 @@ namespace spotify_lyrics_overlay.Pill
             attributes.SetColorMatrix(new ColorMatrix { Matrix33 = opacity });
             g.DrawImage(cover, Rectangle.Round(thumbRect), 0, 0, cover.Width, cover.Height, GraphicsUnit.Pixel, attributes);
             g.Restore(state);
+        }
+
+        private bool titleScrolls => titleWidth > titleRect.Width;
+
+        //one wait plus scrolling by the title and the gap
+        private float marqueeCycleMs => PillStyle.MarqueeDelayMs + (titleWidth + PillStyle.MarqueeGap) / PillStyle.MarqueeSpeed * 1000;
+
+        //the title drawn twice (title, gap, title) so the loop is seamless, faded at the edges
+        private void drawMarquee(Graphics g, string text, float opacity)
+        {
+            float t = marqueeMs % marqueeCycleMs;
+            float offset = t < PillStyle.MarqueeDelayMs ? 0 : (t - PillStyle.MarqueeDelayMs) * PillStyle.MarqueeSpeed / 1000;
+
+            int w = (int)Math.Ceiling(titleRect.Width), h = (int)Math.Ceiling(titleRect.Height);
+            if (w <= 0 || h <= 0) return;
+            using var strip = new Bitmap(w, h, PixelFormat.Format32bppArgb);
+            using (var sg = Graphics.FromImage(strip))
+            {
+                sg.TextRenderingHint = TextRenderingHint.AntiAlias;
+                using var brush = new SolidBrush(PillStyle.Title);
+                using var format = new StringFormat(StringFormatFlags.NoWrap);
+                sg.DrawString(text, titleFont, brush, -offset, 0, format);
+                sg.DrawString(text, titleFont, brush, -offset + titleWidth + PillStyle.MarqueeGap, 0, format);
+            }
+            // the left edge only fades while the text is moved off it
+            fadeEdges(strip, offset > 0, true);
+
+            using var attributes = new ImageAttributes();
+            attributes.SetColorMatrix(new ColorMatrix { Matrix33 = opacity });
+            g.DrawImage(strip, new Rectangle((int)titleRect.X, (int)titleRect.Y, w, h), 0, 0, w, h, GraphicsUnit.Pixel, attributes);
+        }
+
+        private static void fadeEdges(Bitmap bitmap, bool left, bool right)
+        {
+            var rect = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+            var data = bitmap.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            try
+            {
+                var pixels = new byte[data.Stride * data.Height];
+                Marshal.Copy(data.Scan0, pixels, 0, pixels.Length);
+                for (int x = 0; x < bitmap.Width; x++)
+                {
+                    float factor = 1f;
+                    if (left) factor = Math.Min(factor, x / PillStyle.MarqueeFade);
+                    if (right) factor = Math.Min(factor, (bitmap.Width - 1 - x) / PillStyle.MarqueeFade);
+                    if (factor >= 1f) continue;
+                    for (int y = 0; y < bitmap.Height; y++)
+                    {
+                        int alpha = y * data.Stride + x * 4 + 3;
+                        pixels[alpha] = (byte)(pixels[alpha] * Math.Max(0f, factor));
+                    }
+                }
+                Marshal.Copy(pixels, 0, data.Scan0, pixels.Length);
+            }
+            finally
+            {
+                bitmap.UnlockBits(data);
+            }
         }
 
         private static void drawText(Graphics g, string text, Font font, Color color, RectangleF rect, float opacity)
