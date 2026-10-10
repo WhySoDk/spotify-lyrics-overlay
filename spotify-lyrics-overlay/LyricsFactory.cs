@@ -232,6 +232,22 @@ namespace spotify_lyrics_overlay
                 : SongLyricsStatus.NotFound;
         }
 
+        //true when the lyrics of the song were set by hand (a lrclib link, pasted or marked instrumental)
+        public bool IsSetByHand(string? trackId)
+        {
+            return trackId != null && trackId == lyricsTrackId && lyrics?.Manual == true;
+        }
+
+        //mark the song as instrumental, or forget that and look its lyrics up again
+        public void SetInstrumental(PlaybackState song, bool instrumental)
+        {
+            if (instrumental)
+                LrcLibLyricsProvider.Instance.SetInstrumental(song.TrackName ?? "", song.TrackArtists ?? "", song.TrackLength);
+            else
+                LrcLibLyricsProvider.Instance.ClearCache(song.TrackName ?? "", song.TrackArtists ?? "", song.TrackLength);
+            ReloadSong(song.TrackId);
+        }
+
         //synced lines of the loaded lyrics, parsed once per lyrics
         private List<LyricLine> GetParsedLyrics()
         {

@@ -359,6 +359,13 @@ namespace spotify_lyrics_overlay
             return null;
         }
 
+        //mark the song as instrumental, it's never looked up again (e.g. lrclib only has the vocal version)
+        public void SetInstrumental(string trackName, string artistName, int durationSeconds)
+        {
+            SaveManual(trackName, artistName, durationSeconds, new LyricsResult { Instrumental = true });
+            DebugStatus.Show($"Marked as instrumental: {trackName} — {artistName}");
+        }
+
         private void SaveManual(string trackName, string artistName, int durationSeconds, LyricsResult result)
         {
             result.Manual = true;

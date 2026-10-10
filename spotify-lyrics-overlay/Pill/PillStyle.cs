@@ -66,6 +66,8 @@ namespace spotify_lyrics_overlay.Pill
 
         //time on screen counted from the pop
         public const int DisplayMs = 3200;
+        //while hovered the pill stays, it carries on this long after the cursor leaves
+        public const int HoverGraceMs = 1000;
         //the width glides to a new size when the status changes
         public const float WidthSmoothingSeconds = 0.06f;
 
@@ -115,6 +117,8 @@ namespace spotify_lyrics_overlay.Pill
         public static readonly Color Title = Color.FromArgb(255, 255, 255, 255);
         public static readonly Color Artist = Color.FromArgb(160, 255, 255, 255);
         public static readonly Color StatusBackground = Color.FromArgb(30, 255, 255, 255);
+        //status chip under the cursor when it can be clicked
+        public static readonly Color StatusHoverBackground = Color.FromArgb(60, 255, 255, 255);
         //stands in for the album cover while it loads
         public static readonly Color ThumbPlaceholder = Color.FromArgb(40, 255, 255, 255);
 

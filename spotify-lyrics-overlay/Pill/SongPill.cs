@@ -7,7 +7,8 @@ using System.Runtime.InteropServices;
 namespace spotify_lyrics_overlay.Pill
 {
     //pill that pops out of the top of the screen when the song changes: cover, title, artist and lyrics status.
-    //a window and timer of its own, so it animates apart from the lyrics and only runs while it's on screen
+    //a window and timer of its own, so it animates apart from the lyrics and only runs while it's on screen.
+    //hovering keeps it up, clicking the status chip marks the song as instrumental (or undoes that)
     internal class SongPill : Form
     {
         private readonly LyricsFactory lyrics;
@@ -26,8 +27,17 @@ namespace spotify_lyrics_overlay.Pill
         private PlaybackState? song;
         private Bitmap? cover;
         private SongLyricsStatus? status;
+        private bool setByHand;
         private string statusText = "";
         private Color statusDot;
+
+        // the cursor is over the pill, the window only takes the mouse then
+        private bool hovered;
+        private bool clickThrough = true;
+        // since the cursor left the pill, not running before it was hovered
+        private readonly Stopwatch sinceHover = new();
+        // the cursor is over the status chip and it can be clicked
+        private bool chipHovered;
 
         // window area at the top center of the screen, the pill is drawn inside it
         private Size area;
@@ -79,6 +89,9 @@ namespace spotify_lyrics_overlay.Pill
             cover?.Dispose();
             cover = null;
             status = null;
+            hovered = chipHovered = false;
+            sinceHover.Reset();
+            setClickThrough(true);
 
             area = new Size((int)(PillStyle.MaxWidth * 1.3f) + 40, (int)(PillStyle.RestTop + PillStyle.Height * 1.5f) + 40);
             areaPos = new Point(screenBounds.X + (screenBounds.Width - area.Width) / 2, screenBounds.Y);
@@ -133,7 +146,8 @@ namespace spotify_lyrics_overlay.Pill
             float dt = Math.Min((float)frameClock.Elapsed.TotalMilliseconds, 100f);
             frameClock.Restart();
 
-            animMs += dt;
+            updateHover();
+            animMs = advance(animMs, dt);
             if (animMs >= PillAnimation.TotalMs)
             {
                 Dismiss();
@@ -147,12 +161,73 @@ namespace spotify_lyrics_overlay.Pill
             render();
         }
 
+        //while hovered (and a moment after) the pill holds once it's in place,
+        //hovering while the info fades out brings it back
+        private float advance(float ms, float dt)
+        {
+            bool holding = hovered || (sinceHover.IsRunning && sinceHover.ElapsedMilliseconds < PillStyle.HoverGraceMs);
+            if (!holding || ms < PillAnimation.SettledAt || ms >= PillAnimation.CollapseAt) return ms + dt;
+            return ms > PillAnimation.ExitAt ? Math.Max(PillAnimation.ExitAt, ms - dt) : ms;
+        }
+
+        private void updateHover()
+        {
+            var cursor = PointToClient(Cursor.Position);
+            bool wasHovered = hovered;
+            // only the widget counts, not the nub on its way in or out
+            hovered = pose.Fill > 0.5f && pillRect.Contains(cursor);
+            if (wasHovered && !hovered) sinceHover.Restart();
+            setClickThrough(!hovered);
+
+            var chip = statusRect;
+            chip.Offset(contentOrigin);
+            bool wasChipHovered = chipHovered;
+            chipHovered = hovered && chipClickable && chip.Contains(cursor);
+            if (chipHovered != wasChipHovered)
+            {
+                Cursor = chipHovered ? Cursors.Hand : Cursors.Default;
+                status = null;
+                updateStatus();
+            }
+        }
+
+        //plain lyrics or none can be marked instrumental, a song marked by hand can be unmarked
+        private bool chipClickable => status is SongLyricsStatus.Plain or SongLyricsStatus.NotFound
+            || (status == SongLyricsStatus.Instrumental && setByHand);
+
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            base.OnMouseUp(e);
+            if (e.Button != MouseButtons.Left || song == null) return;
+
+            updateHover();
+            if (!chipHovered) return;
+
+            lyrics.SetInstrumental(song, status != SongLyricsStatus.Instrumental);
+            chipHovered = false;
+            Cursor = Cursors.Default;
+            status = null;
+            updateStatus();
+        }
+
+        //the window takes the mouse only while the cursor is over the pill, so the shadow and empty space never block clicks
+        private void setClickThrough(bool on)
+        {
+            if (on == clickThrough || !IsHandleCreated) return;
+            clickThrough = on;
+            long style = NativeMethods.GetWindowLongPtr(Handle, NativeMethods.GWL_EXSTYLE).ToInt64();
+            style = on ? style | NativeMethods.WS_EX_TRANSPARENT : style & ~NativeMethods.WS_EX_TRANSPARENT;
+            NativeMethods.SetWindowLongPtr(Handle, NativeMethods.GWL_EXSTYLE, new IntPtr(style));
+        }
+
         //the lyrics finish loading while the pill is up, the chip follows
         private void updateStatus()
         {
             var current = lyrics.GetLyricsStatus(song?.TrackId);
-            if (current == status) return;
+            bool manual = lyrics.IsSetByHand(song?.TrackId);
+            if (current == status && manual == setByHand) return;
             status = current;
+            setByHand = manual;
 
             (statusText, statusDot) = current switch
             {
@@ -163,6 +238,11 @@ namespace spotify_lyrics_overlay.Pill
                 SongLyricsStatus.Failed => ("Offline", Color.FromArgb(255, 80, 80)),
                 _ => ("Loading", Color.FromArgb(150, 150, 150)),
             };
+            // what a click does, shown while the chip is hovered
+            if (chipHovered)
+            {
+                statusText = current == SongLyricsStatus.Instrumental ? "Undo instrumental" : "Mark instrumental";
+            }
             layout();
         }
 
@@ -300,7 +380,7 @@ namespace spotify_lyrics_overlay.Pill
         private void drawStatus(Graphics g, float opacity)
         {
             using (var chipPath = roundedRect(statusRect, statusRect.Height / 2))
-            using (var chipBrush = new SolidBrush(withAlpha(PillStyle.StatusBackground, opacity)))
+            using (var chipBrush = new SolidBrush(withAlpha(chipHovered ? PillStyle.StatusHoverBackground : PillStyle.StatusBackground, opacity)))
             {
                 g.FillPath(chipBrush, chipPath);
             }
@@ -378,6 +458,14 @@ namespace spotify_lyrics_overlay.Pill
             public const byte AC_SRC_OVER = 0x00;
             public const byte AC_SRC_ALPHA = 0x01;
             public const int ULW_ALPHA = 0x00000002;
+            public const int GWL_EXSTYLE = -20;
+            public const long WS_EX_TRANSPARENT = 0x20;
+
+            [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+            public static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
+
+            [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+            public static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
 
             [StructLayout(LayoutKind.Sequential, Pack = 1)]
             public struct BLENDFUNCTION
