@@ -413,21 +413,35 @@ namespace spotify_lyrics_overlay
 
         private static readonly Regex TimestampRegex = new(@"^\[(\d+):(\d+(?:[.:]\d+)?)\]");
         private static readonly Regex WordTimestampRegex = new(@"<\d+:\d+(?:[.:]\d+)?>");
+        // [offset:+500] in milliseconds, a positive offset shows the lyrics earlier
+        private static readonly Regex OffsetTagRegex = new(@"^\[offset:\s*([+-]?\d{1,9})\s*\]", RegexOptions.IgnoreCase);
 
         public static List<LyricLine> ParseLyrics(string rawLyrics)
         {
             var lines = new List<LyricLine>();
+            double offset = 0;
 
-            foreach (string rawLine in rawLyrics.Split('\n'))
+            // Trim() leaves the byte order mark of a pasted file in front of the first timestamp
+            foreach (string rawLine in rawLyrics.TrimStart('﻿').Split('\n'))
             {
                 // a line can have several timestamps, e.g. "[00:12.00][01:30.00]chorus"
                 var times = new List<double>();
                 string rest = rawLine.Trim();
+
+                var offsetMatch = OffsetTagRegex.Match(rest);
+                if (offsetMatch.Success)
+                {
+                    offset = int.Parse(offsetMatch.Groups[1].Value, CultureInfo.InvariantCulture) / 1000.0;
+                    continue;
+                }
+
                 Match match;
                 while ((match = TimestampRegex.Match(rest)).Success)
                 {
-                    int minutes = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
-                    double seconds = double.Parse(match.Groups[2].Value.Replace(':', '.'), CultureInfo.InvariantCulture);
+                    // a time too big to parse ends the timestamps
+                    if (!int.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int minutes)
+                        || !double.TryParse(match.Groups[2].Value.Replace(':', '.'), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double seconds))
+                        break;
                     times.Add(minutes * 60 + seconds);
                     rest = rest.Substring(match.Length);
                 }
@@ -437,6 +451,11 @@ namespace spotify_lyrics_overlay
                 {
                     lines.Add(new LyricLine(time, text));
                 }
+            }
+
+            foreach (var line in lines)
+            {
+                line.Time = Math.Max(0, line.Time - offset);
             }
 
             // stable sort so lines with equal timestamps keep their order
