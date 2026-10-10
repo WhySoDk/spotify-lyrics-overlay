@@ -94,7 +94,7 @@ The **Lyrics** card has three buttons, they work on the song that is playing rig
 Lyrics you set with the last two buttons are never replaced by a lookup. Use **Refetch current song** to go back to the automatic ones.
 
 # Song pill
-When the song changes, a pill pops out of the top of the lyrics screen for a few seconds with the album cover, title, artist and the lyrics status (`Synced`, `Plain`, `Instrumental`, `No lyrics`, `Loading`). It doesn't show again when the same song repeats. Turn it off with `Show the song when it changes` in the **Lyrics** card. Titles too long for the pill scroll, and the pill stays until the title has scrolled through once.
+When the song changes, a pill pops out of the top of the lyrics screen for a few seconds with the album cover, title, artist and the lyrics status (`Synced`, `Plain`, `Instrumental`, `No lyrics`, `Loading`). It doesn't show again when the same song repeats. Turn it off with `Show the song when it changes` in the **Lyrics** card. Titles too long for the pill scroll, and the pill stays until the title has scrolled through once. Thai titles and artists use the [Prompt](https://fonts.google.com/specimen/Prompt) font, which is built into the exe (SIL Open Font License, see `spotify-lyrics-overlay/Fonts/OFL.txt`).
 
 Hover the pill to keep it on screen. When the status is `Plain` or `No lyrics` but you know the song is instrumental, click the status to mark it as instrumental, it's never looked up again. Click it again to undo.
 

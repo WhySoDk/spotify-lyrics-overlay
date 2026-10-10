@@ -18,6 +18,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Prompt, used for Thai text on the song pill -->
+    <EmbeddedResource Include="Fonts\*.ttf" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="spotify-lyrics-overlay.Tests" />
   </ItemGroup>
 

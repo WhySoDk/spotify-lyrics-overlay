@@ -18,8 +18,9 @@ namespace spotify_lyrics_overlay.Pill
         private float animMs;
         private PillPose pose;
 
-        private readonly Font titleFont = new(PillStyle.FontName, PillStyle.TitleSize, FontStyle.Bold);
-        private readonly Font artistFont = new(PillStyle.FontName, PillStyle.ArtistSize);
+        // picked per song, Prompt for Thai
+        private Font titleFont = new(PillStyle.FontName, PillStyle.TitleSize, FontStyle.Bold);
+        private Font artistFont = new(PillStyle.FontName, PillStyle.ArtistSize);
         private readonly Font statusFont = new(PillStyle.FontName, PillStyle.StatusSize, FontStyle.Bold);
         private readonly Graphics measureGraphics = createMeasureGraphics();
 
@@ -96,6 +97,11 @@ namespace spotify_lyrics_overlay.Pill
             hovered = chipHovered = false;
             sinceHover.Reset();
             setClickThrough(true);
+
+            titleFont.Dispose();
+            artistFont.Dispose();
+            titleFont = PillFonts.Create(newSong.TrackName ?? "", PillStyle.TitleSize, FontStyle.Bold);
+            artistFont = PillFonts.Create(newSong.TrackArtists ?? "", PillStyle.ArtistSize, FontStyle.Regular);
 
             area = new Size((int)(PillStyle.MaxWidth * 1.3f) + 40, (int)(PillStyle.RestTop + PillStyle.Height * 1.5f) + 40);
             areaPos = new Point(screenBounds.X + (screenBounds.Width - area.Width) / 2, screenBounds.Y);
