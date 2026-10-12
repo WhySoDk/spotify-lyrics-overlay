@@ -89,6 +89,8 @@ namespace spotify_lyrics_overlay
                 selectMonitor(config.screenName, config.followPrimaryScreen);
                 xOffsetBox.Value = config.xOffset;
                 yOffsetBox.Value = config.yOffset;
+                // the main display may have changed since the last run, use the layout saved for its size
+                restoreScreenLayout();
 
                 setFontColor(ColorHelper.FromHex(config.fontColorHex, ColorHelper.FromHex(DefaultFontColor, Color.Gold)));
                 albumColorCheckBox.IsChecked = config.albumColor;
