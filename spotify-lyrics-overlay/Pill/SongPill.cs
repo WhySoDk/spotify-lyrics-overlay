@@ -75,10 +75,13 @@ namespace spotify_lyrics_overlay.Pill
             VisibleChanged += (s, e) => { if (Visible) render(); };
         }
 
+        // the pill text is small, unhinted anti-aliasing leaves it soft, grid fitting snaps the strokes to pixels
+        private const TextRenderingHint PillTextHint = TextRenderingHint.AntiAliasGridFit;
+
         private static Graphics createMeasureGraphics()
         {
             var g = Graphics.FromImage(new Bitmap(1, 1));
-            g.TextRenderingHint = TextRenderingHint.AntiAlias;
+            g.TextRenderingHint = PillTextHint;
             return g;
         }
 
@@ -380,16 +383,18 @@ namespace spotify_lyrics_overlay.Pill
             thumbRect = new RectangleF(PillStyle.PaddingLeft, (PillStyle.Height - PillStyle.ThumbSize) / 2, PillStyle.ThumbSize, PillStyle.ThumbSize);
 
             float textHeight = titleSize.Height + PillStyle.LineGap + artistSize.Height;
-            float textTop = (PillStyle.Height - textHeight) / 2;
+            // whole pixels, text between pixels is drawn blurred
+            float textTop = MathF.Round((PillStyle.Height - textHeight) / 2);
             titleRect = new RectangleF(textX, textTop, textWidth, titleSize.Height);
-            artistRect = new RectangleF(textX, textTop + titleSize.Height + PillStyle.LineGap, textWidth, artistSize.Height);
+            artistRect = new RectangleF(textX, MathF.Round(textTop + titleSize.Height + PillStyle.LineGap), textWidth, artistSize.Height);
 
-            statusRect = new RectangleF(targetWidth - PillStyle.PaddingRight - statusWidth, (PillStyle.Height - PillStyle.StatusHeight) / 2,
+            statusRect = new RectangleF(MathF.Round(targetWidth - PillStyle.PaddingRight - statusWidth), MathF.Round((PillStyle.Height - PillStyle.StatusHeight) / 2),
                 statusWidth, PillStyle.StatusHeight);
         }
 
         //top left of the full size layout on the bitmap, the info is centered in the pill as it grows
-        private PointF contentOrigin => new(area.Width / 2f - width / 2, pose.Top + (pose.Height - PillStyle.Height) / 2);
+        //rounded to whole pixels so the text stays sharp
+        private PointF contentOrigin => new(MathF.Round(area.Width / 2f - width / 2), MathF.Round(pose.Top + (pose.Height - PillStyle.Height) / 2));
 
         private RectangleF pillRect => new(area.Width / 2f - pose.Width / 2, pose.Top, pose.Width, pose.Height);
 
@@ -401,7 +406,7 @@ namespace spotify_lyrics_overlay.Pill
             using (var g = Graphics.FromImage(bitmap))
             {
                 g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.TextRenderingHint = TextRenderingHint.AntiAlias;
+                g.TextRenderingHint = PillTextHint;
                 g.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 g.Clear(Color.Transparent);
 
@@ -508,7 +513,7 @@ namespace spotify_lyrics_overlay.Pill
             using var strip = new Bitmap(w, h, PixelFormat.Format32bppArgb);
             using (var sg = Graphics.FromImage(strip))
             {
-                sg.TextRenderingHint = TextRenderingHint.AntiAlias;
+                sg.TextRenderingHint = PillTextHint;
                 using var brush = new SolidBrush(PillStyle.Title);
                 using var format = new StringFormat(StringFormatFlags.NoWrap);
                 sg.DrawString(text, titleFont, brush, -offset, 0, format);
