@@ -67,8 +67,18 @@ public class SpotifyConnector
         var token = await TryRefreshCachedTokenAsync() ?? await LoginAsync();
         SaveToken(token);
 
+        // Spotify can answer a refresh without a new refresh token, the authenticator then
+        // overwrites the old one with null and every later refresh (and the next launch) fails
+        string refreshToken = token.RefreshToken;
         var authenticator = new PKCEAuthenticator(ClientId, token);
-        authenticator.TokenRefreshed += (_, refreshed) => SaveToken(refreshed);
+        authenticator.TokenRefreshed += (_, refreshed) =>
+        {
+            if (string.IsNullOrEmpty(refreshed.RefreshToken)) refreshed.RefreshToken = refreshToken;
+            else refreshToken = refreshed.RefreshToken;
+            // the authenticator refreshes with the token it was given, keep that one usable too
+            token.RefreshToken = refreshToken;
+            SaveToken(refreshed);
+        };
 
         var config = SpotifyClientConfig.CreateDefault().WithAuthenticator(authenticator);
         return new SpotifyClient(config);
@@ -83,9 +93,11 @@ public class SpotifyConnector
             var cache = JsonSerializer.Deserialize<TokenCache>(File.ReadAllText(TokenCacheFilePath));
             if (cache?.Token?.RefreshToken == null || cache.ClientId != ClientId) return null;
 
-            return await new OAuthClient().RequestToken(
+            var token = await new OAuthClient().RequestToken(
                 new PKCETokenRefreshRequest(ClientId, cache.Token.RefreshToken)
             );
+            if (string.IsNullOrEmpty(token.RefreshToken)) token.RefreshToken = cache.Token.RefreshToken;
+            return token;
         }
         catch (Exception ex)
         {
