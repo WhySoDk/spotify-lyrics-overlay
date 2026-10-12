@@ -10,6 +10,10 @@ namespace spotify_lyrics_overlay
         {
             ApplicationConfiguration.Initialize();
 
+            // config.json, token.json, the cache and the logs live next to the exe,
+            // Windows starts apps at sign in from System32
+            Directory.SetCurrentDirectory(AppContext.BaseDirectory);
+
             // a second copy would fight over token.json and the login callback port
             using var instanceMutex = new Mutex(true, @"Local\SpotifyLyricsOverlay", out bool isFirstInstance);
             if (!isFirstInstance)
