@@ -187,10 +187,17 @@
                                Text="0, 0 is the center of the screen" />
                 </StackPanel>
             </Border>
-            <Border Style="{StaticResource Card}" Margin="0">
+            <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource CardTitle}" Text="Line transition" />
                     <ComboBox x:Name="transitionComboBox" HorizontalAlignment="Stretch" SelectionChanged="setting_Changed" />
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Card}" Margin="0">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="App" />
+                    <CheckBox x:Name="startWithWindowsCheckBox" Content="Start with Windows" Click="startWithWindowsCheckBox_Click"
+                              ToolTip="Opens in the tray when you sign in to Windows" />
                 </StackPanel>
             </Border>
         </StackPanel>

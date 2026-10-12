@@ -107,6 +107,8 @@ namespace spotify_lyrics_overlay
                 debugCacheHitsCheckBox.IsChecked = config.debugShowCacheHits;
             }
 
+            startWithWindowsCheckBox.IsChecked = WindowsStartup.IsEnabled;
+
             showRunState();
 
             // the overlay needs the Client ID to log in, so it's only started when one is remembered
@@ -367,6 +369,12 @@ namespace spotify_lyrics_overlay
         {
             updateConfig();
             if (followSpotifyCheckBox.IsChecked == true && clientIdBox.Password.Length > 0) setStarted(spotifyRunning);
+        }
+
+        private void startWithWindowsCheckBox_Click(object sender, RoutedEventArgs e)
+        {
+            WindowsStartup.Set(startWithWindowsCheckBox.IsChecked == true);
+            startWithWindowsCheckBox.IsChecked = WindowsStartup.IsEnabled;
         }
 
         private void runButton_Click(object sender, RoutedEventArgs e) => setStarted(!isStarted);

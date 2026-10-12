@@ -33,10 +33,13 @@ namespace spotify_lyrics_overlay
             // the app lives in the tray, closing the window doesn't end it
             app.ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown;
 
+            WindowsStartup.Refresh();
+
             var window = new SettingsWindow();
             ThreadPool.RegisterWaitForSingleObject(showEvent,
                 (_, _) => window.Dispatcher.BeginInvoke(window.ShowFromTray), null, Timeout.Infinite, executeOnlyOnce: false);
-            window.Show();
+            // started at sign in, stay in the tray
+            if (!Environment.GetCommandLineArgs().Contains(WindowsStartup.TrayArgument)) window.Show();
             app.Run();
         }
     }
