@@ -37,7 +37,7 @@ namespace spotify_lyrics_overlay
                 {
                     using var stream = new MemoryStream(bytes);
                     using var image = new Bitmap(stream);
-                    return Pick(ColorThief.GetPalette(image, colorCount: 5, quality: 10));
+                    return Pick(ColorThief.GetPalette(image, colorCount: 5, quality: 10)) is Color picked ? Vivid(picked) : (Color?)null;
                 });
 
                 writeCache(url, color is Color c ? ColorHelper.ToHex(c) : "");
@@ -92,6 +92,16 @@ namespace spotify_lyrics_overlay
                 }
             }
             return picked;
+        }
+
+        //muted covers give dull colors (Raincoat gives a slate blue #476087), the hue is kept
+        //and the saturation and brightness are raised so the lyrics stand out.
+        //greys stay grey, boosting them would make up a hue
+        public static Color Vivid(Color color, float minSaturation = 0.55f, float minValue = 0.9f, float grey = 0.12f)
+        {
+            var (hue, saturation, value) = ColorHelper.ToHsv(color);
+            if (saturation >= grey) saturation = Math.Max(saturation, minSaturation);
+            return ColorHelper.FromHsv(hue, saturation, Math.Max(value, minValue));
         }
 
         //not too dark

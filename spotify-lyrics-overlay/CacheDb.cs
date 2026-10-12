@@ -76,6 +76,8 @@ namespace spotify_lyrics_overlay
 
             // colors picked before the blue bias was removed are picked again
             if (version < 1) execute(connection, "DELETE FROM album_colors; PRAGMA user_version = 1;");
+            // colors picked before muted colors were made vivid are picked again
+            if (version < 2) execute(connection, "DELETE FROM album_colors; PRAGMA user_version = 2;");
         }
 
         // ---------- lyrics ----------
