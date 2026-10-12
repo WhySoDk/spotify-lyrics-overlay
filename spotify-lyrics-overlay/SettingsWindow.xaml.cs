@@ -28,6 +28,8 @@ namespace spotify_lyrics_overlay
         private readonly TrayIcon tray = new();
         // closing the window only hides it to the tray until Exit is picked there
         private bool exiting;
+        // clicking the tray icon takes the focus away from the window before the click arrives
+        private DateTime lastDeactivated = DateTime.MinValue;
         private Color fontColor;
         private Color backgroundColor = Color.Black;
 
@@ -42,6 +44,8 @@ namespace spotify_lyrics_overlay
             InitializeComponent();
 
             tray.OpenRequested += ShowFromTray;
+            tray.Clicked += toggleFromTray;
+            Deactivated += (s, e) => lastDeactivated = DateTime.UtcNow;
             tray.RunToggled += () => setStarted(!isStarted);
             tray.ExitRequested += exitApp;
             System.Windows.Application.Current.SessionEnding += (s, e) => exiting = true;
@@ -464,6 +468,15 @@ namespace spotify_lyrics_overlay
             Show();
             if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
             Activate();
+        }
+
+        //hides the window when it was in front, otherwise brings it up
+        private void toggleFromTray()
+        {
+            bool inFront = IsVisible && WindowState != WindowState.Minimized
+                && (IsActive || DateTime.UtcNow - lastDeactivated < TimeSpan.FromMilliseconds(500));
+            if (inFront) Hide();
+            else ShowFromTray();
         }
 
         private void exitApp()

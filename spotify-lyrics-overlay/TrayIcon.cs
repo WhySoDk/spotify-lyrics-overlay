@@ -10,6 +10,8 @@ namespace spotify_lyrics_overlay
         private bool tipShown;
 
         public event Action? OpenRequested;
+        //left click on the icon, opens or hides the window
+        public event Action? Clicked;
         public event Action? RunToggled;
         public event Action? ExitRequested;
 
@@ -34,7 +36,7 @@ namespace spotify_lyrics_overlay
             };
             icon.MouseClick += (s, e) =>
             {
-                if (e.Button == MouseButtons.Left) OpenRequested?.Invoke();
+                if (e.Button == MouseButtons.Left) Clicked?.Invoke();
             };
         }
 
