@@ -86,6 +86,7 @@ namespace spotify_lyrics_overlay
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
+            Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= onDisplaySettingsChanged;
             pollingCancellation.Cancel();
             updateTimer.Stop();
             songPill.Close();
@@ -122,6 +123,9 @@ namespace spotify_lyrics_overlay
 
             // WinForms resets the window size when showing it, draw again afterwards
             this.VisibleChanged += (s, e) => { if (this.Visible) RenderLayeredWindow(); };
+
+            // a screen can change size or place without the config changing
+            Microsoft.Win32.SystemEvents.DisplaySettingsChanged += onDisplaySettingsChanged;
         }
 
         //track the selected monitor, the window itself only covers the lyrics
@@ -129,10 +133,16 @@ namespace spotify_lyrics_overlay
         private void updateScreenBounds()
         {
             var config = ConfigManager.Instance.LoadConfig();
-            var screen = Screen.AllScreens.FirstOrDefault(s => s.DeviceName == config.screenName)
-                         ?? Screen.PrimaryScreen!;
+            var screen = config.followPrimaryScreen ? Screen.PrimaryScreen!
+                : Screen.AllScreens.FirstOrDefault(s => s.DeviceName == config.screenName) ?? Screen.PrimaryScreen!;
 
             screenBounds = screen.Bounds;
+        }
+
+        //raised on a system thread
+        private void onDisplaySettingsChanged(object? sender, EventArgs e)
+        {
+            if (IsHandleCreated) BeginInvoke(() => lastConfigSnapshot = "");
         }
 
         private void applyConfig()

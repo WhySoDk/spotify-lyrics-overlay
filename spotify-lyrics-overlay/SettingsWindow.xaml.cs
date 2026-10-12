@@ -25,7 +25,8 @@ namespace spotify_lyrics_overlay
         private Color fontColor;
         private Color backgroundColor = Color.Black;
 
-        private record MonitorItem(Screen Screen, string Label);
+        //FollowsPrimary is the entry that moves with the Windows main display, Screen is the current one
+        private record MonitorItem(Screen Screen, string Label, bool FollowsPrimary = false);
 
         //Name is stored in the config, empty for no secondary font
         private record FontChoice(string Name, string Label, string Preview);
@@ -42,17 +43,14 @@ namespace spotify_lyrics_overlay
                 .Prepend(new FontChoice("", "None", "Segoe UI"))
                 .ToList();
             transitionComboBox.ItemsSource = LyricsTransitions.All.Select(mode => mode.DisplayName).ToList();
-            monitorComboBox.ItemsSource = Screen.AllScreens
-                .Select((screen, i) => new MonitorItem(screen,
-                    $"Display {i + 1} — {screen.Bounds.Width} × {screen.Bounds.Height}{(screen.Primary ? " (primary)" : "")}"))
-                .ToList();
+            monitorComboBox.ItemsSource = monitorItems();
 
             if (config.newlyGenerated)
             {
                 selectFont("arial");
                 selectSecondaryFont("");
                 fontSizeBox.Value = 27;
-                selectMonitor(Screen.PrimaryScreen?.DeviceName);
+                selectMonitor(null, followPrimary: true);
                 setFontColor(ColorHelper.FromHex(DefaultFontColor, Color.Gold));
                 albumColorCheckBox.IsChecked = true;
                 setBackgroundColor(Color.Black);
@@ -72,7 +70,7 @@ namespace spotify_lyrics_overlay
                 italicCheckBox.IsChecked = config.italic;
                 dropShadowCheckBox.IsChecked = config.dropShadow;
 
-                selectMonitor(config.screenName);
+                selectMonitor(config.screenName, config.followPrimaryScreen);
                 xOffsetBox.Value = config.xOffset;
                 yOffsetBox.Value = config.yOffset;
 
@@ -105,6 +103,36 @@ namespace spotify_lyrics_overlay
             updateConfig();
 
             if (autoStart) Loaded += (s, e) => setStarted(true);
+
+            // monitors plugged in or out, or another one made the main display
+            Microsoft.Win32.SystemEvents.DisplaySettingsChanged += onDisplaySettingsChanged;
+            Closed += (s, e) => Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= onDisplaySettingsChanged;
+        }
+
+        private static List<MonitorItem> monitorItems()
+        {
+            var items = Screen.AllScreens
+                .Select((screen, i) => new MonitorItem(screen,
+                    $"Display {i + 1} — {screen.Bounds.Width} × {screen.Bounds.Height}{(screen.Primary ? " (primary)" : "")}"))
+                .ToList();
+            var primary = Screen.PrimaryScreen ?? items[0].Screen;
+            items.Insert(0, new MonitorItem(primary,
+                $"Main display — {primary.Bounds.Width} × {primary.Bounds.Height} (follows Windows)", FollowsPrimary: true));
+            return items;
+        }
+
+        //raised on a system thread
+        private void onDisplaySettingsChanged(object? sender, EventArgs e) => Dispatcher.BeginInvoke(refreshMonitors);
+
+        //list the monitors again and keep the choice, the font size and offsets follow the new screen size
+        private void refreshMonitors()
+        {
+            var selected = monitorComboBox.SelectedItem as MonitorItem;
+            bool wasInitializing = isInitializing;
+            isInitializing = true;
+            monitorComboBox.ItemsSource = monitorItems();
+            isInitializing = wasInitializing;
+            selectMonitor(selected?.Screen.DeviceName, selected?.FollowsPrimary ?? true);
         }
 
         private static Brush frozenBrush(byte r, byte g, byte b)
@@ -129,11 +157,12 @@ namespace spotify_lyrics_overlay
             secondaryFontComboBox.SelectedIndex = Math.Max(0, fonts.FindIndex(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase)));
         }
 
-        private void selectMonitor(string? deviceName)
+        //a monitor that is gone falls back to the main display
+        private void selectMonitor(string? deviceName, bool followPrimary)
         {
             var monitors = (List<MonitorItem>)monitorComboBox.ItemsSource;
-            int index = monitors.FindIndex(m => m.Screen.DeviceName == deviceName);
-            monitorComboBox.SelectedIndex = index != -1 ? index : monitors.FindIndex(m => m.Screen.Primary);
+            int index = followPrimary ? -1 : monitors.FindIndex(m => !m.FollowsPrimary && m.Screen.DeviceName == deviceName);
+            monitorComboBox.SelectedIndex = Math.Max(0, index);
         }
 
         //offsets are measured from the center, so half the screen size each way
@@ -260,6 +289,7 @@ namespace spotify_lyrics_overlay
             if (monitorComboBox.SelectedItem is MonitorItem monitor)
             {
                 config.screenName = monitor.Screen.DeviceName;
+                config.followPrimaryScreen = monitor.FollowsPrimary;
             }
             config.xOffset = xOffsetBox.Value;
             config.yOffset = yOffsetBox.Value;

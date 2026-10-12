@@ -31,6 +31,7 @@ namespace spotify_lyrics_overlay
                     fontColorHex = "#f3ce32",
                     albumColor = true,
                     screenName = "",
+                    followPrimaryScreen = true,
                     xOffset = 0,
                     yOffset = 540,
                     apiKey = "",

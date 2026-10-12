@@ -15,6 +15,8 @@ namespace spotify_lyrics_overlay
         public String fontColorHex { get; set; } = "";
         public Boolean albumColor { get; set; } = true;
         public String screenName { get; set; } = "";
+        // use whichever monitor Windows has as the main display, screenName is then the one last seen
+        public Boolean followPrimaryScreen { get; set; }
         public int xOffset { get; set; }
         public int yOffset { get; set; }
         // font size and offsets last used on each screen size, keyed like "1920x1080"
@@ -41,7 +43,7 @@ namespace spotify_lyrics_overlay
         {
             return $"AppConfig(newlyGenerated: {newlyGenerated}, fontName: {fontName}, secondaryFontName: {secondaryFontName}, fontSize: {fontSize}, " +
                    $"bold: {bold}, italic: {italic}, dropShadow: {dropShadow}, fontColorHex: {fontColorHex}, albumColor: {albumColor}, " +
-                   $"screenName: {screenName}, xOffset: {xOffset}, yOffset: {yOffset}, screenLayouts: {screenLayouts.Count}, apiKey: {apiKey}, rememberApiKey: {rememberApiKey}, " +
+                   $"screenName: {screenName}, followPrimaryScreen: {followPrimaryScreen}, xOffset: {xOffset}, yOffset: {yOffset}, screenLayouts: {screenLayouts.Count}, apiKey: {apiKey}, rememberApiKey: {rememberApiKey}, " +
                    $"rememberRunState: {rememberRunState}, wasStarted: {wasStarted}, " +
                    $"backgroundEnabled: {backgroundEnabled}, backgroundColorHex: {backgroundColorHex}, backgroundOpacity: {backgroundOpacity}, backgroundSpread: {backgroundSpread}, transitionMode: {transitionMode}, songPill: {songPill}, songPillWindowsMedia: {songPillWindowsMedia}, " +
                    $"debugEnabled: {debugEnabled}, debugShowCacheHits: {debugShowCacheHits})";
