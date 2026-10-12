@@ -17,8 +17,10 @@ An overlay that shows the synced lyrics of the song currently playing on Spotify
         <li>Text color, or a color picked from the album cover</li>
         <li>Background box with its own color, opacity and spread</li>
         <li>Line transitions: Legacy, Slide up, Crossfade, Scroll, Pop, Karaoke fill, Push sideways and Typewriter</li>
-        <li>Monitor selection and X / Y offset (0, 0 is the center of the screen)</li>
+        <li>Monitor selection and X / Y offset (0, 0 is the center of the screen), or follow the Windows main display, with the size and offsets kept per screen size</li>
         <li>Remember Start / Stop, so the overlay starts by itself when you open the app</li>
+        <li>Start and stop with the Spotify app, Start by hand still works for Spotify on another device</li>
+        <li>Lives in the tray, closing the window keeps it running, and can start with Windows</li>
       </ul>
     </td>
   </tr>
