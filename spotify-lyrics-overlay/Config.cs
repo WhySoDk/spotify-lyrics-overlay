@@ -26,6 +26,8 @@ namespace spotify_lyrics_overlay
         // start the overlay on launch when it was running the last time the app closed
         public Boolean rememberRunState { get; set; }
         public Boolean wasStarted { get; set; }
+        // start the overlay when the Spotify app opens and stop it when it closes
+        public Boolean followSpotify { get; set; }
         public Boolean backgroundEnabled { get; set; }
         public String backgroundColorHex { get; set; } = "#000000";
         public int backgroundOpacity { get; set; } = 70;
@@ -44,7 +46,7 @@ namespace spotify_lyrics_overlay
             return $"AppConfig(newlyGenerated: {newlyGenerated}, fontName: {fontName}, secondaryFontName: {secondaryFontName}, fontSize: {fontSize}, " +
                    $"bold: {bold}, italic: {italic}, dropShadow: {dropShadow}, fontColorHex: {fontColorHex}, albumColor: {albumColor}, " +
                    $"screenName: {screenName}, followPrimaryScreen: {followPrimaryScreen}, xOffset: {xOffset}, yOffset: {yOffset}, screenLayouts: {screenLayouts.Count}, apiKey: {apiKey}, rememberApiKey: {rememberApiKey}, " +
-                   $"rememberRunState: {rememberRunState}, wasStarted: {wasStarted}, " +
+                   $"rememberRunState: {rememberRunState}, wasStarted: {wasStarted}, followSpotify: {followSpotify}, " +
                    $"backgroundEnabled: {backgroundEnabled}, backgroundColorHex: {backgroundColorHex}, backgroundOpacity: {backgroundOpacity}, backgroundSpread: {backgroundSpread}, transitionMode: {transitionMode}, songPill: {songPill}, songPillWindowsMedia: {songPillWindowsMedia}, " +
                    $"debugEnabled: {debugEnabled}, debugShowCacheHits: {debugShowCacheHits})";
         }

@@ -278,6 +278,8 @@
                     <CheckBox x:Name="rememberClientIdCheckBox" Content="Remember Client ID" Margin="0,8,0,0" Click="setting_Changed" />
                     <CheckBox x:Name="rememberRunStateCheckBox" Content="Remember Start / Stop" Margin="0,8,0,0" Click="setting_Changed"
                               ToolTip="Starts the overlay when the app opens if it was running when you closed it" />
+                    <CheckBox x:Name="followSpotifyCheckBox" Content="Start and stop with Spotify" Margin="0,8,0,0" Click="followSpotifyCheckBox_Click"
+                              ToolTip="Starts the overlay when the Spotify app opens and stops it when it closes. Start it yourself to follow Spotify playing on another device." />
                 </StackPanel>
             </Border>
 

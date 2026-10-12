@@ -38,6 +38,7 @@ namespace spotify_lyrics_overlay
                     rememberApiKey = false,
                     rememberRunState = false,
                     wasStarted = false,
+                    followSpotify = true,
                     backgroundEnabled = false,
                     backgroundColorHex = "#000000",
                     backgroundOpacity = 70,

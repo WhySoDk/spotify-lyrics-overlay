@@ -20,6 +20,9 @@ namespace spotify_lyrics_overlay
         private const string DefaultFontColor = "#F3CE32";
 
         private bool isStarted = false;
+        // checked every few seconds, only a change starts or stops the overlay so Start / Stop by hand still wins
+        private bool spotifyRunning = isSpotifyRunning();
+        private readonly System.Windows.Threading.DispatcherTimer spotifyTimer = new() { Interval = TimeSpan.FromSeconds(2) };
         private bool isInitializing = true;
         private LyricsOverlay? overlay;
         private Color fontColor;
@@ -59,6 +62,7 @@ namespace spotify_lyrics_overlay
                 transitionComboBox.SelectedIndex = LyricsTransitions.IndexOf(LyricsTransitions.DefaultId);
                 debugCacheHitsCheckBox.IsChecked = true;
                 songPillCheckBox.IsChecked = true;
+                followSpotifyCheckBox.IsChecked = true;
             }
             else
             {
@@ -80,6 +84,7 @@ namespace spotify_lyrics_overlay
                 clientIdBox.Password = config.apiKey;
                 rememberClientIdCheckBox.IsChecked = config.rememberApiKey;
                 rememberRunStateCheckBox.IsChecked = config.rememberRunState;
+                followSpotifyCheckBox.IsChecked = config.followSpotify;
 
                 backgroundCheckBox.IsChecked = config.backgroundEnabled;
                 setBackgroundColor(ColorHelper.FromHex(config.backgroundColorHex, backgroundColor));
@@ -97,12 +102,16 @@ namespace spotify_lyrics_overlay
             showRunState();
 
             // the overlay needs the Client ID to log in, so it's only started when one is remembered
-            bool autoStart = !config.newlyGenerated && config.rememberRunState && config.wasStarted && clientIdBox.Password.Length > 0;
+            bool autoStart = !config.newlyGenerated && clientIdBox.Password.Length > 0
+                && (config.followSpotify ? spotifyRunning : config.rememberRunState && config.wasStarted);
 
             isInitializing = false;
             updateConfig();
 
             if (autoStart) Loaded += (s, e) => setStarted(true);
+
+            spotifyTimer.Tick += (s, e) => checkSpotify();
+            spotifyTimer.Start();
 
             // monitors plugged in or out, or another one made the main display
             Microsoft.Win32.SystemEvents.DisplaySettingsChanged += onDisplaySettingsChanged;
@@ -305,6 +314,7 @@ namespace spotify_lyrics_overlay
             config.apiKey = config.rememberApiKey ? clientIdBox.Password : "";
             config.rememberRunState = rememberRunStateCheckBox.IsChecked == true;
             config.wasStarted = isStarted;
+            config.followSpotify = followSpotifyCheckBox.IsChecked == true;
 
             config.backgroundEnabled = backgroundCheckBox.IsChecked == true;
             config.backgroundColorHex = ColorHelper.ToHex(backgroundColor);
@@ -321,6 +331,33 @@ namespace spotify_lyrics_overlay
 
             config.debugEnabled = debugCheckBox.IsChecked == true;
             config.debugShowCacheHits = debugCacheHitsCheckBox.IsChecked == true;
+        }
+
+        private static bool isSpotifyRunning()
+        {
+            var processes = Process.GetProcessesByName("Spotify");
+            foreach (var process in processes) process.Dispose();
+            return processes.Length > 0;
+        }
+
+        private void checkSpotify()
+        {
+            bool running = isSpotifyRunning();
+            if (running == spotifyRunning) return;
+            spotifyRunning = running;
+
+            // without a Client ID starting would only fail to log in
+            if (followSpotifyCheckBox.IsChecked == true && (!running || clientIdBox.Password.Length > 0))
+            {
+                Log.Write(running ? "Spotify opened, starting the overlay" : "Spotify closed, stopping the overlay");
+                setStarted(running);
+            }
+        }
+
+        private void followSpotifyCheckBox_Click(object sender, RoutedEventArgs e)
+        {
+            updateConfig();
+            if (followSpotifyCheckBox.IsChecked == true && clientIdBox.Password.Length > 0) setStarted(spotifyRunning);
         }
 
         private void runButton_Click(object sender, RoutedEventArgs e) => setStarted(!isStarted);
