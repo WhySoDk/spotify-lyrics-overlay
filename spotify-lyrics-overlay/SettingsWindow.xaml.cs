@@ -25,6 +25,9 @@ namespace spotify_lyrics_overlay
         private readonly System.Windows.Threading.DispatcherTimer spotifyTimer = new() { Interval = TimeSpan.FromSeconds(2) };
         private bool isInitializing = true;
         private LyricsOverlay? overlay;
+        private readonly TrayIcon tray = new();
+        // closing the window only hides it to the tray until Exit is picked there
+        private bool exiting;
         private Color fontColor;
         private Color backgroundColor = Color.Black;
 
@@ -37,6 +40,11 @@ namespace spotify_lyrics_overlay
         public SettingsWindow()
         {
             InitializeComponent();
+
+            tray.OpenRequested += ShowFromTray;
+            tray.RunToggled += () => setStarted(!isStarted);
+            tray.ExitRequested += exitApp;
+            System.Windows.Application.Current.SessionEnding += (s, e) => exiting = true;
 
             var config = ConfigManager.Instance.LoadConfig();
 
@@ -108,7 +116,8 @@ namespace spotify_lyrics_overlay
             isInitializing = false;
             updateConfig();
 
-            if (autoStart) Loaded += (s, e) => setStarted(true);
+            // the window may stay hidden in the tray, so don't wait for it to load
+            if (autoStart) Dispatcher.BeginInvoke(() => setStarted(true));
 
             spotifyTimer.Tick += (s, e) => checkSpotify();
             spotifyTimer.Start();
@@ -433,6 +442,7 @@ namespace spotify_lyrics_overlay
         {
             runButton.Content = isStarted ? "Stop" : "Start";
             runButton.Background = isStarted ? StopBrush : StartBrush;
+            tray.ShowRunState(isStarted);
         }
 
         private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
@@ -441,10 +451,36 @@ namespace spotify_lyrics_overlay
             e.Handled = true;
         }
 
+        public void ShowFromTray()
+        {
+            Show();
+            if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+            Activate();
+        }
+
+        private void exitApp()
+        {
+            exiting = true;
+            Close();
+        }
+
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             updateConfig();
             ConfigManager.Instance.SaveConfig();
+
+            if (!exiting)
+            {
+                e.Cancel = true;
+                Hide();
+                tray.ShowStillRunningTip();
+                return;
+            }
+
+            spotifyTimer.Stop();
+            overlay?.Close();
+            tray.Dispose();
+            System.Windows.Application.Current.Shutdown();
         }
     }
 }

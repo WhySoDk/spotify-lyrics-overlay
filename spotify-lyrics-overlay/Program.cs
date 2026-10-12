@@ -14,12 +14,13 @@ namespace spotify_lyrics_overlay
             // Windows starts apps at sign in from System32
             Directory.SetCurrentDirectory(AppContext.BaseDirectory);
 
-            // a second copy would fight over token.json and the login callback port
+            // a second copy would fight over token.json and the login callback port,
+            // it opens the settings of the running one instead
             using var instanceMutex = new Mutex(true, @"Local\SpotifyLyricsOverlay", out bool isFirstInstance);
+            using var showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, @"Local\SpotifyLyricsOverlay.Show");
             if (!isFirstInstance)
             {
-                MessageBox.Show("Spotify Lyrics Overlay is already running.", "Spotify Lyrics Overlay",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                showEvent.Set();
                 return;
             }
 
@@ -29,7 +30,14 @@ namespace spotify_lyrics_overlay
 #pragma warning disable WPF0001
             app.ThemeMode = System.Windows.ThemeMode.Dark;
 #pragma warning restore WPF0001
-            app.Run(new SettingsWindow());
+            // the app lives in the tray, closing the window doesn't end it
+            app.ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown;
+
+            var window = new SettingsWindow();
+            ThreadPool.RegisterWaitForSingleObject(showEvent,
+                (_, _) => window.Dispatcher.BeginInvoke(window.ShowFromTray), null, Timeout.Infinite, executeOnlyOnce: false);
+            window.Show();
+            app.Run();
         }
     }
 }
