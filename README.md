@@ -1,5 +1,4 @@
-
- ![OverlayExample-ezgif com-optimize](https://github.com/user-attachments/assets/c9dbebed-6fde-4854-94d0-91dc283837a0)
+<img src="https://github.com/WhySoDk/spotify-lyrics-overlay/blob/main/gif/Timeline-12fps-1.5x.gif" />
 
  # Spotify Lyrics Overlay
 An overlay that shows the synced lyrics of the song currently playing on Spotify, on top of everything else on your screen.
@@ -7,13 +6,13 @@ An overlay that shows the synced lyrics of the song currently playing on Spotify
 <table>
   <tr>
     <td>
-      <img src="https://github.com/user-attachments/assets/c1c08b51-c1df-477e-9951-af29156b98ba" alt="App Screenshot" width="400"/>
+      <img width="1500" alt="image" src="https://github.com/user-attachments/assets/5979fb11-7f9f-42c9-8621-0620f6c55991"/>
     </td>
     <td>
       <h3>The application supports:</h3>
       <ul>
         <li>Font, size and style (Bold, Italic and Drop shadow)</li>
-        <li>Secondary font for lines the main font can't show (e.g. Thai lyrics with an English font)</li>
+        <li>Secondary font for lines the main font can't show</li>
         <li>Text color, or a color picked from the album cover</li>
         <li>Background box with its own color, opacity and spread</li>
         <li>Line transitions: Legacy, Slide up, Crossfade, Scroll, Pop, Karaoke fill, Push sideways and Typewriter</li>
@@ -30,14 +29,17 @@ Every setting updates the lyrics live.
 
 # Multi language support
 If the selected font does not support the language of a line, the secondary font is used for that line. With no secondary font set, Windows picks a default font.
-![Still 2025-06-04 191303_4 1 1 (1)](https://github.com/user-attachments/assets/688c37cd-7329-44ed-b0cc-8f2c728915bc)
+<img width="1263" height="251" alt="en" src="https://github.com/user-attachments/assets/f31cc070-2b6e-473d-8718-bed95edd2161" />
+<img width="1263" height="251" alt="th" src="https://github.com/user-attachments/assets/0be52a99-fa71-41f7-a13c-a780e46ff947" />
+<img width="1263" height="250" alt="jp" src="https://github.com/user-attachments/assets/26c3f14e-d0a3-4770-bc01-65e72abb5e0d" />
+<img width="1263" height="251" alt="kr" src="https://github.com/user-attachments/assets/8970ac19-0a37-4702-8ffd-d26366ae85cb" />
 
 # Use case
 Now you can sing along with your song while coding. A study found that this improves code quality by 150 percent.
-![Screenshot 2025-06-04 183321](https://github.com/user-attachments/assets/28bd844c-b9e4-4879-b079-e0286593ef14)
+<img width="2559" height="1439" alt="Screenshot 2026-10-09 020425" src="https://github.com/user-attachments/assets/48e513bc-decd-4ba1-acdf-736d644bb26a" />
 
 #### Or in Balatro, increase rare joker chance on the first shop by naneinf%
-![image](https://github.com/user-attachments/assets/de58758b-26cf-4dd2-af4b-d51f7bfe2ba8)
+<img width="2559" height="1439" alt="Screenshot 2026-10-09 015953" src="https://github.com/user-attachments/assets/92932372-5677-4946-887c-a01390d34a28" />
 
 # How to use
 Download `spotify-lyrics-overlay.exe` from the [latest release](https://github.com/WhySoDk/spotify-lyrics-overlay/releases/latest) and run it. Nothing else needs to be installed.
@@ -104,7 +106,7 @@ When the song changes, a pill pops out of the top of the lyrics screen for a few
 Hover the pill to keep it on screen. When the status is `Plain` or `No lyrics` but you know the song is instrumental, click the status to mark it as instrumental, it's never looked up again. Click it again to undo.
 
 # Status messages
-Shown for 5 seconds, then hidden.
+Shown for 5 seconds, then hidden. (If debug is checked)
 
 | Case | Message |
 |---|---|
